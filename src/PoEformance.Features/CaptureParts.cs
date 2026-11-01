@@ -679,7 +679,7 @@ public static class CaptureParts
             + "thirty times a second. Each simulated (phys_) bone's swing on its parent is written - how far, about which axis, its period, "
             + "its turning points and how fast it settles - as a table beside your speed, and every run of turn matrices in the blocks "
             + "matrix by matrix. The reads go beside it as bone-watch.bin. PRESS THE KEY AND STAND STILL while the window's banner is amber; "
-            + "at the high tone it turns green - WALK, STOP AND TURN a few times until the low tone."),
+            + "at the high tone it turns green - WALK A FEW STEPS, THEN STOP AND STAND STILL until the low tone."),
         new(ShaderStages, "Memory", "shader stages", CaptureReport.ShaderStagesFile,
             "The order the engine runs a material's shader stages in, read off its own table in the running program - an array of "
             + "std::string in its image, of which only the pixel side's ten were ever seen - written whole, beside this build's compile "

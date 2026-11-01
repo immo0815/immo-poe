@@ -31,12 +31,13 @@ namespace PoEformance.Game.Diagnostics;
 /// cannot write and the driver's write-combined heaps, which held that sweep for 1,150 of its threads' seconds and ended it on its budget.
 ///
 /// WHAT THE PERSON DOES, as the capture's window asks in a banner with a tone (v0.1.407, DECIDED from the live client: "in that window
-/// finding anything is hard"): stand still while the search runs, then - at the high tone and the green banner - walk, stop and turn a few
-/// times until the low tone; a swing wants a start and a stop to show its period and how it settles.
+/// finding anything is hard"): stand still while the search runs, then - at the high tone and the green banner - walk until the low tone;
+/// from v0.1.411 a few steps and then a stand, as the 08:00 capture walked to the end and the swing after a stop shows its period and how
+/// it settles.
 /// </remarks>
 public sealed class BoneWatch
 {
-    /// <summary>How long it watches - CHOSEN: long enough to walk, stop and turn twice.</summary>
+    /// <summary>How long it watches - CHOSEN: long enough for a few steps and the swing to settle after them.</summary>
     public const double Seconds = 12;
 
     /// <summary>The first part of the watch, which finds the blocks that change.</summary>
@@ -70,7 +71,13 @@ public sealed class BoneWatch
     public const int MostCandidateBytes = 48 * 1024;
 
     /// <summary>Most blocks read as often as they change between the sweeps - CHOSEN.</summary>
-    public const int MostFast = 16;
+    public const int MostFast = 24;
+
+    /// <summary>
+    /// Most windows of places near one piece read as often as they change - those holding a place taken for a simulated bone that moved
+    /// between the search's two reads, the nearest its bone's length first. CHOSEN.
+    /// </summary>
+    public const int MostFastWindows = 4;
 
     /// <summary>Most reads kept of a block read as often as it changes - CHOSEN: some ten a frame for twelve seconds.</summary>
     public const int MostFastReads = 8000;
@@ -84,7 +91,7 @@ public sealed class BoneWatch
         /// <summary>Reading the player and searching memory: the person is to stand still.</summary>
         Searching,
 
-        /// <summary>Watching: the person is to walk, stop and turn.</summary>
+        /// <summary>Watching: the person is to walk a few steps, then stop and stand still.</summary>
         Watching,
 
         /// <summary>Finished, or stopped.</summary>
@@ -250,7 +257,7 @@ public sealed class BoneWatch
             }
 
             finds++;
-            Line = string.Create(CultureInfo.InvariantCulture, $"finding what changes: {walked.Count} blocks read {finds} times - walk, stop and turn now");
+            Line = string.Create(CultureInfo.InvariantCulture, $"finding what changes: {walked.Count} blocks read {finds} times - walk a few steps now, then stop");
             Thread.Sleep(10);
         }
 
@@ -284,7 +291,7 @@ public sealed class BoneWatch
 
                 sweeps++;
                 next = now + Every;
-                Line = string.Create(CultureInfo.InvariantCulture, $"{now:0.0} of {_seconds:0} s - {kept.Count} blocks, {skeletons.Count} skeletons and {found.Candidates.Count} places in the world read {sweeps} times, {fast.Count} live ones {fastReads} times as they changed - walk, stop and turn");
+                Line = string.Create(CultureInfo.InvariantCulture, $"{now:0.0} of {_seconds:0} s - {kept.Count} blocks, {skeletons.Count} skeletons and {found.Candidates.Count} places in the world read {sweeps} times, {fast.Count} live ones {fastReads} times as they changed - walk a few steps, then stop and stand still");
             }
 
             if (fast.Count == 0)
@@ -553,6 +560,7 @@ public sealed class BoneWatch
         }
 
         byte[] probe = new byte[(int)windows.Select(window => window.To - window.From).DefaultIfEmpty(0UL).Max()];
+        var swinging = new List<(BoneWatchSeries.Block Block, int Place, float Off)>();
         foreach ((ulong from, ulong to, List<WorldCandidate> inside) in windows.OrderBy(window => window.From))
         {
             int size = (int)(to - from);
@@ -572,6 +580,25 @@ public sealed class BoneWatch
             {
                 found.Candidates.Add(new BoneWatchSeries.Candidate(
                     window, (int)(candidate.At - from), candidate.Layout, placeIndex[candidate.Place], candidate.Bone, candidate.Parent));
+            }
+
+            foreach (WorldCandidate candidate in inside.Where(one => one.Moving && one.Parent >= 0))
+            {
+                swinging.Add((found.Blocks[window], candidate.Place, MathF.Abs(candidate.Ratio - 1f)));
+            }
+        }
+
+        // THE SWINGING PLACES AS OFTEN AS THEY CHANGE too: the 08:00 capture's lamp, read thirty times a second against its staff's World
+        // read every frame, came at a random point of each frame - too coarse a clock for its swing (2026-11-01, v0.1.411). Each piece's
+        // windows holding a place taken for a simulated bone that moved between the search's two reads, the nearest its length first.
+        foreach (IGrouping<int, (BoneWatchSeries.Block Block, int Place, float Off)> piece in swinging.GroupBy(one => one.Place))
+        {
+            foreach (BoneWatchSeries.Block block in piece.OrderBy(one => one.Off).Select(one => one.Block).Distinct().Take(MostFastWindows))
+            {
+                if (found.Fast.Count < MostFast && !found.Fast.Contains(block))
+                {
+                    found.Fast.Add(block);
+                }
             }
         }
 

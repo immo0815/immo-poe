@@ -1006,10 +1006,12 @@ public sealed class BoneWatchSeries
         var times = new List<double>();
         var world = new List<Vector3>();
         var framed = new List<Vector3>();
+        var forwards = new List<Matrix4x4>();
         for (var read = 0; read < block.Reads.Count; read++)
         {
             byte[] bytes = block.Reads[read].Bytes;
-            if (backs[read] is not { } back || candidate.Offset < 0 || candidate.Offset + PoseHunt.Span(candidate.Layout) > bytes.Length)
+            if (backs[read] is not { } back || candidate.Offset < 0 || candidate.Offset + PoseHunt.Span(candidate.Layout) > bytes.Length
+                || !Matrix4x4.Invert(back, out Matrix4x4 forward))
             {
                 continue;
             }
@@ -1018,6 +1020,7 @@ public sealed class BoneWatchSeries
             times.Add(block.Reads[read].At);
             world.Add(at);
             framed.Add(Vector3.Transform(at, back));
+            forwards.Add(forward);
         }
 
         string name = candidate.Bone >= 0 && candidate.Bone < rig.Count ? rig.Names[candidate.Bone] : "?";
@@ -1056,7 +1059,58 @@ public sealed class BoneWatchSeries
         BoneSwing swing = PoseSwing.Measure(name, rig.Names[candidate.Parent], "place in the world", [.. times], vectors, restWay.Length(), ratios);
         return new CandidateRead(candidate, head + string.Create(
             CultureInfo.InvariantCulture,
-            $": taken for {name} on {rig.Names[candidate.Parent]} - its distance {ratios.Min():0.###}..{ratios.Max():0.###} of the rest's {restWay.Length():0.##}, {vectors.Min(one => one.Length()):0.#}..{vectors.Max(one => one.Length()):0.#} degrees from the rest's way, moved {moved:0.##} in the world and {wandered:0.##} in the piece's frame over {times[^1] - times[0]:0.0} s; {beside}"), swing, moved, wandered);
+            $": taken for {name} on {rig.Names[candidate.Parent]} - its distance {ratios.Min():0.###}..{ratios.Max():0.###} of the rest's {restWay.Length():0.##}, {vectors.Min(one => one.Length()):0.#}..{vectors.Max(one => one.Length()):0.#} degrees from the rest's way, moved {moved:0.##} in the world and {wandered:0.##} in the piece's frame over {times[^1] - times[0]:0.0} s{Hanging(rig.Names[candidate.Parent], from, times, world, forwards)}; {beside}"), swing, moved, wandered);
+    }
+
+    /// <summary>
+    /// How a place taken for a simulated bone hangs from its fixed ancestor in the WORLD: its way's angle from straight down (the game's
+    /// down is +z) while he stood and while he moved, and its mean way while he stood - empty where his place was not watched. The 08:00
+    /// capture's lamp hung so while he stood, its mean way (-0.008, -0.010, 0.9999): a pendulum under the world's gravity, whatever its
+    /// rest in the staff (2026-11-01, v0.1.411).
+    /// </summary>
+    private string Hanging(string parent, Vector3 from, List<double> times, List<Vector3> world, List<Matrix4x4> forwards)
+    {
+        (double At, Vector3 Place)[] player = PlayerReads();
+        if (player.Length < 2)
+        {
+            return string.Empty;
+        }
+
+        var standing = new List<float>();
+        var moving = new List<float>();
+        Vector3 mean = Vector3.Zero;
+        for (var read = 0; read < world.Count; read++)
+        {
+            Vector3 way = world[read] - Vector3.Transform(from, forwards[read]);
+            float length = way.Length();
+            if (length <= 1e-6f)
+            {
+                continue;
+            }
+
+            float down = MathF.Acos(Math.Clamp(way.Z / length, -1f, 1f)) * 180f / MathF.PI;
+            if (Speed(player, times[read]) is { } speed && speed < 1)
+            {
+                standing.Add(down);
+                mean += way / length;
+            }
+            else
+            {
+                moving.Add(down);
+            }
+        }
+
+        static float Median(List<float> values)
+        {
+            values.Sort();
+            return values.Count == 0 ? float.NaN : values[values.Count / 2];
+        }
+
+        float most = standing.Concat(moving).DefaultIfEmpty(float.NaN).Max();
+        mean = mean.LengthSquared() > 0 ? Vector3.Normalize(mean) : mean;
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"; hangs from {parent} in the world {Median(standing):0.#} degrees from straight down at the median while he stood ({standing.Count} reads, its mean way ({mean.X:0.###}, {mean.Y:0.###}, {mean.Z:0.####})), {Median(moving):0.#} while he moved ({moving.Count} reads), {most:0.#} at most");
     }
 
     /// <summary>The floats round a candidate at its first read - four before its x and seven from it - for what the engine keeps beside it.</summary>

@@ -1066,6 +1066,19 @@ while walking. The world search found the staff's root copies and two places of 
   a World read so stands until its next read (`Backs`, the last at or before).
 - THE CANDIDATES' LINES ARE SHARED OUT PIECE BY PIECE (`LeastCandidateLines` 24, CHOSEN): the 07:26 report wrote not one of the staff's twelve.
 Take it again with the staff in hand: stand, walk, then STOP AND STAND a few seconds - the swing after a stop is the damping.
+WHAT v0.1.410'S CAPTURE SAID (2026-11-01 08:00, The Red Vale, through the agent link; the staff in hand, standing 1.6 s, then walking to the end,
+5,554 units): the search caught no reused buffer holding the staff this time, but a place the lamp's way - and STAYS: 0x28955589DE8, the staff's
+piece object + 0x59D8 (its copy at + 0x578C), followed by a 1 and a direction - the light the .ao carries on phys_tri_lamp_jntBnd, a reading. It
+held the lamp in all 343 reads, 22.28 to 22.40 from base_lamp_jntBnd in 334 (24 times the World's 0.925), the rest where the World read was another
+frame's. MEASURED from it: THE LAMP HANGS UNDER THE WORLD'S GRAVITY - its mean way while he stood (-0.008, -0.010, 0.9999), straight down (the
+game's down is +z), whatever its rest in the staff; walking it swings to 163 degrees. A per-frame fit, the staff's World read every frame
+(about 91 a second) driving the pivot: a Verlet pendulum given about 0.6 of the pivot's acceleration of the frame (the .ao's
+animation_force_factor 2, a reading), keeping 0.99 to 1 of its speed a frame and g 600 to 981 (one unit about a centimetre) predicts its way
+7.5 degrees off over 15 frames at the median, 24 without the transfer - the lamp's own 30 reads a second at random points of a frame too coarse
+to settle it. So v0.1.411: the swinging places are read as often as they change too (each piece's windows holding a place taken for a simulated
+bone that moved between the search's two reads, `MostFastWindows` 4, `MostFast` 24 - CHOSEN); the reading says how each such place hangs in the
+world - from straight down while he stood and while he moved (`BoneWatchSeries.Hanging`); and the banner asks for A FEW STEPS, THEN STAND STILL
+until the low tone. NOT BUILT: the swing itself, until a capture with the lamp read every frame and a stand after the steps settles the model.
 
 ## Verify against the game, not against yourself
 
