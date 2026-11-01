@@ -81,6 +81,54 @@ public sealed class ClothWorld
     /// <summary>A cloth's particles where they stand now.</summary>
     public ReadOnlySpan<Vector3> Particles(int cloth) => _bodies[cloth].X;
 
+    /// <summary>A cloth's particles' last moves - the step's displacement, a Verlet velocity.</summary>
+    public ReadOnlySpan<Vector3> Moves(int cloth) => _bodies[cloth].D;
+
+    /// <summary>
+    /// A world of cloths the game's own objects were read into (ClothRig.Recorded, ClothWatch), among <paramref name="spheres"/> spheres its
+    /// <paramref name="capsules"/> end in - stepped as its parts are handed in: <see cref="Seed"/>, <see cref="Retarget"/>,
+    /// <see cref="Spheres"/>, <see cref="StepOnce"/>, <see cref="Settle"/> - the order of a frame being the replay's to try.
+    /// </summary>
+    public static ClothWorld Recorded(IReadOnlyList<ClothRig> cloths, int spheres, IReadOnlyList<(int From, int To)> capsules)
+        => new(cloths, [], [.. Enumerable.Repeat(new ClothSphere(-1, Vector3.Zero, 0f), Math.Max(spheres, 0))], capsules) { _started = true };
+
+    /// <summary>A cloth's state handed in: its particles' places and last moves, its targets now and before, the last step's seconds.</summary>
+    public void Seed(int cloth, ReadOnlySpan<Vector3> places, ReadOnlySpan<Vector3> moves, ReadOnlySpan<Vector3> targets, ReadOnlySpan<Vector3> lasts, float dt)
+        => _bodies[cloth].Seed(places, moves, targets, lasts, dt);
+
+    /// <summary>A cloth's targets set anew, as SetTargets sets them (module+0x13AA8B0): the last kept, every rest and shock length the new targets' own.</summary>
+    public void Retarget(int cloth, ReadOnlySpan<Vector3> targets) => _bodies[cloth].Set(targets);
+
+    /// <summary>The spheres where they stood at the last step and where they stand now, and their radii.</summary>
+    public void Spheres(ReadOnlySpan<Vector3> before, ReadOnlySpan<Vector3> now, ReadOnlySpan<float> radii)
+    {
+        if (before.Length != _spheres.Length || now.Length != _spheres.Length || radii.Length != _spheres.Length)
+        {
+            throw new ArgumentException("one place before, one now and one radius a sphere");
+        }
+
+        before.CopyTo(_sphereBefore);
+        now.CopyTo(_sphereNow);
+        radii.CopyTo(_sphereRadius);
+    }
+
+    /// <summary>One step of the world, as <see cref="Frame"/> takes it where the clock takes one: forces, integration, contacts, the solver.</summary>
+    public void StepOnce(float dt)
+    {
+        LastStep = dt;
+        Step(dt);
+        Steps++;
+    }
+
+    /// <summary>The controller's phase after the step, as <see cref="Frame"/> runs it: each cloth's shock propagation where on, then its enclosure.</summary>
+    public void Settle()
+    {
+        foreach (Body body in _bodies)
+        {
+            body.After();
+        }
+    }
+
     /// <summary>
     /// One frame of <paramref name="seconds"/>: the targets skinned by <paramref name="skin"/> (each bone's bind-to-pose matrix in the model's
     /// space), the system's step where its clock takes one, shock propagation and enclosure. The first frame stands every particle on its target.
@@ -284,6 +332,42 @@ public sealed class ClothWorld
                 }
             }
 
+            Lengths();
+        }
+
+        /// <summary>The targets handed in (a recording's), as SetTargets sets them: the last kept, every rest and shock length the new ones' own.</summary>
+        public void Set(ReadOnlySpan<Vector3> targets)
+        {
+            if (targets.Length != Rig.Count)
+            {
+                throw new ArgumentException("one target a particle", nameof(targets));
+            }
+
+            _target.CopyTo(_last.AsSpan());
+            targets.CopyTo(_target);
+            Lengths();
+        }
+
+        /// <summary>The state handed in (a recording's): places, last moves, the targets now and before, the last step's seconds.</summary>
+        public void Seed(ReadOnlySpan<Vector3> places, ReadOnlySpan<Vector3> moves, ReadOnlySpan<Vector3> targets, ReadOnlySpan<Vector3> lasts, float dt)
+        {
+            if (places.Length != Rig.Count || moves.Length != Rig.Count || targets.Length != Rig.Count || lasts.Length != Rig.Count)
+            {
+                throw new ArgumentException("one place, move and target a particle");
+            }
+
+            places.CopyTo(X);
+            moves.CopyTo(D);
+            targets.CopyTo(_target);
+            lasts.CopyTo(_last);
+            _dt = dt;
+            _seenFrame = -1;
+            Lengths();
+        }
+
+        /// <summary>Every shock link's length and every distance constraint's rest, from the targets now (SetTargets).</summary>
+        private void Lengths()
+        {
             for (var one = 0; one < Rig.Shocks.Length; one++)
             {
                 (int parent, int child) = Rig.Shocks[one];

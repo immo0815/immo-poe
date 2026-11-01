@@ -92,6 +92,9 @@ internal sealed class CaptureKey
     /// <summary>The diagnoses that take seconds, by part key - each started as the key goes down. See <see cref="OfferWork"/>.</summary>
     private readonly Dictionary<string, Func<string, IReadOnlyList<string>?>> _works = new(StringComparer.Ordinal);
 
+    /// <summary>The diagnoses that take seconds and read the model panes as they stood at the press, by part key - see <see cref="OfferWork"/>.</summary>
+    private readonly Dictionary<string, Func<string, IReadOnlyList<CapturePane>, IReadOnlyList<string>?>> _paneWorks = new(StringComparer.Ordinal);
+
     /// <summary>What a piece of work says of itself in the window while it runs, by part key - see <see cref="OfferWork"/>.</summary>
     private readonly Dictionary<string, CaptureWorkProgress> _workProgress = new(StringComparer.Ordinal);
 
@@ -311,6 +314,24 @@ internal sealed class CaptureKey
     }
 
     /// <summary>
+    /// A diagnosis that takes seconds and reads the model panes as they stood when the key went down (<see cref="OfferPanes"/>) - the
+    /// cloth watch's tool cloths. Otherwise as <see cref="OfferWork(string, Func{string, IReadOnlyList{string}?}, CaptureWorkProgress?)"/>.
+    /// </summary>
+    /// <param name="key">The part's key - see CaptureParts.</param>
+    /// <param name="work">Given the path of the part's file and the panes, its lines to write there.</param>
+    /// <param name="progress">What it says of itself in the window while it runs.</param>
+    public void OfferWork(string key, Func<string, IReadOnlyList<CapturePane>, IReadOnlyList<string>?> work, CaptureWorkProgress? progress = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(work);
+        _paneWorks[key] = work;
+        if (progress is not null)
+        {
+            _workProgress[key] = progress;
+        }
+    }
+
+    /// <summary>
     /// The model panes showing a model, asked for on the frame the key goes down - the model-panes part, whose files are read with the rest. See CapturePanes.
     /// </summary>
     /// <param name="panes">The panes as they stand.</param>
@@ -476,6 +497,15 @@ internal sealed class CaptureKey
             }
         }
 
+        // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread; and before the
+        // slow diagnoses start, which may read them (the cloth watch holds the game's cloth against the Monster Book's).
+        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters) || On(CaptureParts.LightExtras)
+                || On(CaptureParts.RoofFade) || On(CaptureParts.Particles) || On(CaptureParts.ClothWatch))
+            && _panes is { } panes)
+        {
+            run.Panes = panes();
+        }
+
         // THE SLOW DIAGNOSES FROM THE PRESS ON, off this thread, each with the file it writes - see OfferWork.
         foreach (CapturePart part in CaptureParts.All)
         {
@@ -486,19 +516,16 @@ internal sealed class CaptureKey
 
             string path = CaptureParts.PathOf(folder, part.File);
             Func<string, IReadOnlyList<string>?>? work = _works.GetValueOrDefault(part.Key);
-            run.Works.Add((part, path, work is null ? null : Task.Run(() => work(path))));
-            if (work is not null)
+            Func<string, IReadOnlyList<CapturePane>, IReadOnlyList<string>?>? paneWork = _paneWorks.GetValueOrDefault(part.Key);
+            IReadOnlyList<CapturePane> shown = run.Panes ?? [];
+            Task<IReadOnlyList<string>?>? started = paneWork is not null ? Task.Run(() => paneWork(path, shown))
+                : work is not null ? Task.Run(() => work(path))
+                : null;
+            run.Works.Add((part, path, started));
+            if (started is not null)
             {
                 run.Progress.Of(part.File)?.Start(now);
             }
-        }
-
-        // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
-        if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters) || On(CaptureParts.LightExtras)
-                || On(CaptureParts.RoofFade) || On(CaptureParts.Particles))
-            && _panes is { } panes)
-        {
-            run.Panes = panes();
         }
 
         // THE LIGHT AND WATER HUNT FROM THE PRESS ON, beside everything else - it searches the game's memory for a minute.
