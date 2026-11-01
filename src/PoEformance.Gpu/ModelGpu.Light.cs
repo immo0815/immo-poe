@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using PoEformance.Game.Files;
 using Vortice.Direct3D;
@@ -25,7 +26,7 @@ namespace PoEformance.Gpu;
 public sealed partial class ModelGpu
 {
     private readonly CardBuffer _tables;
-    private readonly Dictionary<SceneLight, LightBuffers> _lit = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<object, LightBuffers> _lit = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<object, CardBuffer> _read = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
@@ -84,6 +85,18 @@ public sealed partial class ModelGpu
 
         // THE WATER'S REFLECTION reads the specular cube where it is asked for and the cube ambient is on - SceneLight.Reflected.
         CubeMap? mirror = ambient == 2 && light.WaterReflection ? light.Mirror : null;
+
+        // THE LIGHTS THE MODEL CARRIES, in the constants: a handful, moving every pose - packed as Points packs the room's.
+        ReadOnlySpan<SceneLight.Point> carried = light.Carried;
+        var rows = default(CarriedRows);
+        for (var at = 0; at < carried.Length; at++)
+        {
+            SceneLight.Point one = carried[at];
+            rows[at * 3] = new Vector4(one.Position, one.Cutoff);
+            rows[(at * 3) + 1] = new Vector4(one.Colour, one.Core);
+            rows[(at * 3) + 2] = new Vector4(one.Zero, 0f, 0f, 0f);
+        }
+
         Written(_scene, new SceneConstants
         {
             CubeTurn = light.CubeTurn,
@@ -100,7 +113,8 @@ public sealed partial class ModelGpu
             Ambient = new Int4(ambient, grade is null ? 0 : 1, ambient == 2 ? light.Cube!.Size : 0, light.PointCount),
             Cells = new Int4(cells.X, cells.Y, cells.Z, (cells.X * cells.Y * cells.Z) + 1),
             Graded = new Int4(grade?.Width ?? 0, grade?.Height ?? 0, grade?.Depth ?? 0, (int)light.View),
-            Glow = new Vector4(light.Emissive ? 1f : 0f, 0f, 0f, 0f),
+            Glow = new Vector4(light.Emissive ? 1f : 0f, carried.Length, 0f, 0f),
+            Carried = rows,
         });
         context.VSSetConstantBuffer(2, _scene);
         context.PSSetConstantBuffer(2, _scene);
@@ -301,10 +315,13 @@ public sealed partial class ModelGpu
         return CardBuffer.Of<float>(device, all, Format.R32_Float, all.Length);
     }
 
-    /// <summary>A light's point lights and their grid on the card, uploaded the first time it is drawn.</summary>
+    /// <summary>
+    /// A light's point lights and their grid on the card, uploaded the first time they are drawn - kept by the lights themselves, which every
+    /// light a pose's carried lights were laid into shares (SceneLight.Carrying), so a playing monster uploads them once.
+    /// </summary>
     private LightBuffers Points(SceneLight light)
     {
-        if (!_lit.TryGetValue(light, out LightBuffers? buffers))
+        if (!_lit.TryGetValue(light.PointsOwner, out LightBuffers? buffers))
         {
             ReadOnlySpan<SceneLight.Point> points = light.Points;
             var packed = new Vector4[points.Length * 3];
@@ -323,7 +340,7 @@ public sealed partial class ModelGpu
             buffers = new LightBuffers(
                 CardBuffer.Of<Vector4>(_device, packed, Format.R32G32B32A32_Float, packed.Length),
                 CardBuffer.Of<int>(_device, reach, Format.R32_UInt, reach.Length));
-            _lit[light] = buffers;
+            _lit[light.PointsOwner] = buffers;
         }
 
         buffers.Used = _draws;
@@ -346,7 +363,7 @@ public sealed partial class ModelGpu
     /// <summary>Lets go of the lights, cubes and grades that have not been drawn for <see cref="Kept"/> draws.</summary>
     private void ForgetLight()
     {
-        foreach (KeyValuePair<SceneLight, LightBuffers> one in _lit.Where(one => _draws - one.Value.Used > Kept).ToArray())
+        foreach (KeyValuePair<object, LightBuffers> one in _lit.Where(one => _draws - one.Value.Used > Kept).ToArray())
         {
             one.Value.Dispose();
             _lit.Remove(one.Key);
@@ -395,6 +412,14 @@ public sealed partial class ModelGpu
         public Int4 Cells;
         public Int4 Graded;
         public Vector4 Glow;
+        public CarriedRows Carried;
+    }
+
+    /// <summary>The lights a model carries, three rows each as <see cref="Points"/> packs the room's - ModelShaders' Carried.</summary>
+    [InlineArray(3 * SceneLight.MostCarried)]
+    private struct CarriedRows
+    {
+        private Vector4 _row;
     }
 
     /// <summary>An HLSL int4.</summary>

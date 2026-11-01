@@ -71,6 +71,7 @@ public static class CaptureMonsterFiles
         Func<ReadOnlyMemory<byte>, int, byte[]?> unpacking = pane.Unpack ?? ((_, _) => null);
         Staging(body, model, actor);
         Parts(body, actor);
+        Carried(body, actor);
         List<(PartFit Part, int Bone)> sockets = SocketsOf(actor);
         List<Swept> his = Animations(body, model, actor, unpacking, sockets);
         Sockets(body, actor, sockets, his);
@@ -298,6 +299,30 @@ public static class CaptureMonsterFiles
                 .Append('\t').Append(part.Kind).Append('\t').Append(Invariant($"{part.Bones}\t{part.Matched}\t{part.Strays}\t{part.Paired}")).Append('\t').Append(part.Malformed ? "yes" : "no")
                 .Append('\t').Append(At(part.Least)).Append(" .. ").Append(At(part.Most)).Append('\t').AppendLine(part.Why);
         }
+    }
+
+    /// <summary>
+    /// The lights he and his parts carry on their bones (CarriedLights): the bone of his rig that moves each, the bone its own file names, where
+    /// the bind pose puts it in his own frame, its colour, radius and penumbra, and its .ao - then what was left out of them.
+    /// </summary>
+    private static void Carried(StringBuilder body, MonsterModel actor)
+    {
+        body.AppendLine().Append(Invariant($"=== the lights he carries on his bones (CarriedLights, the light panel's \"carried\"): {actor.Carried.Count} - each where the bind pose puts it in his own frame, moved by its bone's skin matrix every pose")).AppendLine();
+        if (actor.Carried.Count == 0)
+        {
+            body.AppendLine(actor.CarriedSaid.Length > 0 ? "  " + actor.CarriedSaid : "  (his files and his parts' name no point light)");
+            return;
+        }
+
+        body.AppendLine("  bone\this bone\tits own file's bone\trest\tcolour\tradius\tpenumbra\tsource");
+        foreach (CarriedLight light in actor.Carried)
+        {
+            string his = light.Bone >= 0 && light.Bone < actor.Rig.Bones.Count ? actor.Rig.Bones[light.Bone].Name : "(none - it stands where he does)";
+            body.Append(Invariant($"  {light.Bone}\t{his}\t{(light.BoneName.Length > 0 ? light.BoneName : "-")}\t{At(light.Rest)}\t{At(light.Colour)}\t{light.Radius:0.###}\t{light.PenumbraDist:0.###}\t"))
+                .AppendLine(light.Source);
+        }
+
+        body.Append("  ").AppendLine(actor.CarriedSaid);
     }
 
     /// <summary>One of his animations as swept: every bone's place at frame nought, and each socketed part's bone at nought and over it.</summary>

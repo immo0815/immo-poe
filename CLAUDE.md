@@ -969,6 +969,21 @@ UNIQUE_NODE_ID, RANDOM_SEED and synced_random_seed, set at run time); SampleTile
 normals a model has none of, CHOSEN flat (normal nought, occlusion one, gloss nought - MASK_TextureStatic turns its coordinates by it times a
 factor the lantern leaves at nought). The lantern now compiles losing nothing, its glossy twin reading WandererStaff_glow.dds. NOT DRAWN: the
 glow lighting anything else (IndirectLightMult's GI feed; the bone's point light comes next).
+THE LAMP'S LIGHT IS CARRIED BY ITS BONE (v0.1.403, DECIDED from the live client: "moving with the animation every frame"). A monster's and
+his pieces' .ao Lights blocks are read as a room's are (RoomLights.Of, which now keeps each light's bone and its position line in that bone's
+frame - `Lit.Bones`, `Offsets`) and gathered as he is dressed (`CarriedLights.Gathering`, `MonsterModel.Carried`, `CarriedSaid`): his own on his
+rig's bone of that name; a piece hung rigidly (held, a prop, a root-only rig) where its own rig rests the bone, through the piece's place,
+carried by the bone it hangs at - as its vertices are; a rider's on its own bone after his; a skin's on his bone of the same name (a READING,
+the piece's own rig resting it elsewhere; one his rig has not is left out, said). The pane lays them where its pose puts each bone - the
+rest through the bone's skin matrix, then a stage's place (`CarriedLights.At`) - into a copy of the panel's light that shares its room lights
+and grid (`SceneLight.Carrying`, `PointsOwner`, the copy kept while the pose stands), asked again once the frame's pose is taken (`Render`), so
+the lamp does not trail its staff by a frame. Every pixel asks every carried light, no grid (`SceneLight.MostCarried`, 8, CHOSEN), with the
+room's fall-off shared (`Reaching`, the card's `PointReaching`): the processor's Shaded and ShadeWater, the card's Lighted, water and the fog's
+ShadeOmni, the card holding them in its scene constants (`Carried`, `Glow.y` their count). The light panel's "carried", on by default
+(`SceneLight.Carries`); monster-files.txt writes each light's bone, its own file's bone, rest, colour, radius and source. The Exile's Staff:
+`phys_tri_lamp_jntBnd`, no position line, colour 2.4671 0.493 0.0398, radius 150, penumbra_dist 0.5 - read as every room light's a is
+(PointShape). NOT DRAWN: the bone's own physics (the lamp's swing, bone-watch measures it first), the flame's particles, spot lights, the
+rigs' own mesh lights, an animation event switching a light's state.
 
 ## Verify against the game, not against yourself
 

@@ -1034,8 +1034,59 @@ public sealed class MonsterPortrait
     /// <summary>The light the last picture was drawn under, compared by reference.</summary>
     private SceneLight? _drawnLight;
 
-    /// <summary>The light for the model in the pane, or null.</summary>
-    private SceneLight? Lit() => SceneLit?.Invoke(_model);
+    /// <summary>The light for the model in the pane, or null - with the lights the model carries on its bones where its pose puts them (Carrying).</summary>
+    private SceneLight? Lit() => SceneLit?.Invoke(_model) is { } light ? Carrying(light) : null;
+
+    // THE CARRIED LIGHTS' LAST LAYING: the light they were laid into, the model and the pose they stood at, and the light that made.
+    private SceneLight? _carriedFrom;
+    private MonsterModel? _carriedModel;
+    private long _carriedPose = -1;
+    private bool _carriedPosed;
+    private SceneLight? _carriedLight;
+    private PointLight[] _carriedAt = [];
+
+    /// <summary>
+    /// The light with the lights the model carries on its bones standing where the pose the pane holds puts them - the same object while the
+    /// light, the model and the pose stand, so the picture is redrawn only when one moved (the redraw compares lights by reference).
+    /// </summary>
+    private SceneLight Carrying(SceneLight light)
+    {
+        bool posed = _tracks is { Ready: true } && _pose is not null;
+        if (_carriedLight is not null && ReferenceEquals(_carriedFrom, light) && ReferenceEquals(_carriedModel, _model)
+            && _carriedPosed == posed && (!posed || _carriedPose == _poseKey))
+        {
+            return _carriedLight;
+        }
+
+        _carriedLight = Carried(light, posed);
+        _carriedFrom = light;
+        _carriedModel = _model;
+        _carriedPose = _poseKey;
+        _carriedPosed = posed;
+        return _carriedLight;
+    }
+
+    /// <summary>
+    /// A light with the model's carried lights laid in where the pose puts their bones (CarriedLights.At) - a staged monster's through his place
+    /// on the stage, as the card skins him - or the light as it is where he carries none or the panel's switch is off.
+    /// </summary>
+    private SceneLight Carried(SceneLight light, bool posed)
+    {
+        MonsterModel carrier = _model.Actor ?? _model;
+        if (carrier.Carried.Count == 0 || !light.Carries)
+        {
+            return light;
+        }
+
+        if (_carriedAt.Length < carrier.Carried.Count)
+        {
+            _carriedAt = new PointLight[carrier.Carried.Count];
+        }
+
+        int count = CarriedLights.At(
+            carrier.Carried, posed ? _pose!.Skin : [], _model.Actor is null ? Matrix4x4.Identity : _model.ActorPlace, _carriedAt);
+        return light.Carrying(_carriedAt.AsSpan(0, count));
+    }
 
     /// <summary>
     /// The area's dust colour a material's DustColor reads, or null for the assumed one - asked whether the game's light is on or not.
@@ -1859,6 +1910,9 @@ public sealed class MonsterPortrait
         // THE LIGHT A CAPTURE HOLDS THE STAGE AGAINST THE GAME UNDER - the panel's, built whether or not the pane draws under it now - and the
         // pose the pane stands at, copied: the parts that draw it again through the game's camera draw what the pane shows (CaptureAtGame).
         (SceneLight? light, IReadOnlyList<string> said) = SceneMeasured?.Invoke(_model) ?? (null, []);
+
+        // WITH THE LIGHTS HE CARRIES where the pose the pane stands at puts them - laid afresh, the pane's own laying left as it is.
+        light = light is null ? null : Carried(light, _tracks is { Ready: true } && _pose is not null);
         Vector3[]? positions = null, normals = null;
         if (_tracks is { Ready: true } && _pose is not null)
         {
@@ -4208,6 +4262,10 @@ public sealed class MonsterPortrait
             {
                 lowest = _model.Mesh.Most.Z;
             }
+
+            // THE LIGHTS HE CARRIES STAND WHERE THIS POSE PUTS THEIR BONES: the light asked again now the pose is taken, or the lantern
+            // would trail its staff by a frame (Carrying keeps the object while the pose stands).
+            _drawnLight = Lit();
 
             // ON THE CARD WHERE IT CAN DRAW THE SAME PICTURE, on the processor where it cannot.
             if (OnCard(size, moving))

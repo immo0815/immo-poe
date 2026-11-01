@@ -314,6 +314,24 @@ public class ModelGpuTests
     }
 
     /// <summary>
+    /// The lights a model carries on its bones (SceneLight.Carrying, v0.1.403) light the box on the card as the processor lights it - held in
+    /// the card's constants beside the room's through their grid, and alone; the room's uploaded once for every pose's copy.
+    /// </summary>
+    [GpuFact]
+    public void CARRIEDLightsLightTheBoxAsTheProcessorLightsThem()
+    {
+        PointLight[] room = [new(new Vector3(-2f, 2f, -1.5f), new Vector3(0.5f, 1f, 3f), 3f, 0.2f, "blue")];
+        PointLight[] carried =
+        [
+            new(new Vector3(2.5f, 1.5f, 0f), new Vector3(2.4671f, 0.493089f, 0.0398032f), 2f, 0.5f, "lamp"),
+            new(new Vector3(0f, 3f, 2.5f), new Vector3(1f, 1f, 1f), 1.5f, 0.9f, "white"),
+        ];
+        var light = new SceneLight(room, SceneLight.PointShape.Penumbra, null) { FlatAmbient = 0.05f, Exposure = 1.4f };
+        Same(new ModelScene(Box(), Turn: 0.6f, Tilt: 0.4f, Light: light.Carrying(carried)));
+        Same(new ModelScene(Ball(), Turn: 0.6f, Tilt: 0.4f, Light: new SceneLight([], SceneLight.PointShape.Penumbra, null) { FlatAmbient = 0.05f }.Carrying(carried)));
+    }
+
+    /// <summary>
     /// In perspective (CameraPose, v0.1.324) the card's clip and reversed depth put every vertex, texel and depth where the processor's
     /// rays do - a box, a textured quad at a slant, the sun's light and shadow from each pixel's own way to the eye, and point lights.
     /// </summary>

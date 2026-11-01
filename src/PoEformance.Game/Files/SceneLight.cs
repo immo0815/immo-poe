@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace PoEformance.Game.Files;
 
@@ -102,6 +103,10 @@ public sealed class SceneLight
     private readonly Vector3 _gridLeast;
     private readonly float _cellSize;
     private readonly int _cellsX, _cellsY, _cellsZ;
+    private readonly PointShape _shape;
+
+    // THE LIGHTS A MODEL CARRIES ON ITS BONES, where this pose puts them - set on a copy alone (Carrying), never on a light handed out.
+    private Point[] _carried = [];
 
     /// <param name="points">The room's point lights, in model space - <see cref="PointLight"/>.</param>
     /// <param name="shape">Which number stands for each one's light_position_data.a.</param>
@@ -109,17 +114,11 @@ public sealed class SceneLight
     public SceneLight(IReadOnlyList<PointLight> points, PointShape shape, PlayerLamp? player)
     {
         ArgumentNullException.ThrowIfNull(points);
+        _shape = shape;
         var lights = new List<Point>(points.Count + 1);
         foreach (PointLight one in points)
         {
-            float a = shape switch
-            {
-                PointShape.One => 1f,
-                PointShape.Penumbra => one.PenumbraDist,
-                _ => 0f,
-            };
-
-            if (Of(one.Position, one.Colour, one.Radius, a) is { } light)
+            if (Of(one.Position, one.Colour, one.Radius, A(one, shape)) is { } light)
             {
                 lights.Add(light);
             }
@@ -210,6 +209,74 @@ public sealed class SceneLight
         _cellStarts = counts;
         _cellEntries ??= [];
     }
+
+    /// <summary>
+    /// The most lights a model carries on its bones that are drawn - CHOSEN, a lantern's one and a boss's torches well within it; those past it
+    /// are left out and said so (MonsterModel.CarriedSaid). They are looked at by every pixel, with no grid, so the card holds them in its
+    /// constants.
+    /// </summary>
+    public const int MostCarried = 8;
+
+    /// <summary>
+    /// Whether the lights a model carries on its bones are drawn - the Exile's Staff's lamp on its <c>phys_tri_lamp_jntBnd</c> - where the
+    /// picture hands them over (<see cref="Carrying"/>): the light panel's "carried", on by default (DECIDED from the live client, 2026-11-01).
+    /// </summary>
+    public bool Carries { get; init; } = true;
+
+    /// <summary>The lights the model carries, where the pose puts them - see <see cref="Carrying"/>; empty on a light no pose was handed.</summary>
+    public ReadOnlySpan<Point> Carried => _carried;
+
+    /// <summary>
+    /// The room's point lights and their grid as one object, which every light <see cref="Carrying"/> made of this one shares with it - what a
+    /// drawing keeps their upload by (the card's), so a monster playing with a lamp in hand uploads the room's lights once.
+    /// </summary>
+    public object PointsOwner => _lights;
+
+    /// <summary>
+    /// This light with the lights a model carries on its bones standing where they stand now - the rest of it the same objects, so the grid,
+    /// the cube, the grade and everything else is shared and nothing is worked out again; the first <see cref="MostCarried"/> taken.
+    /// </summary>
+    /// <remarks>
+    /// A COPY, NOT A CHANGE: a picture drawing behind the frame keeps the light it was handed, whatever pose the frame moves on to. The
+    /// lights are point lights as the room's are (ComputePointLightParamsNew), their light_position_data.a read as the room's is
+    /// (<see cref="PointShape"/>), and looked at by every pixel rather than through the grid - a handful, moving every frame.
+    /// </remarks>
+    /// <param name="lights">The carried lights in the picture's model space, where the pose puts their bones.</param>
+    public SceneLight Carrying(ReadOnlySpan<PointLight> lights)
+    {
+        // THE PANEL'S SWITCH OFF: the light as it was, carrying nothing.
+        if (!Carries)
+        {
+            return this;
+        }
+
+        var points = new Point[Math.Min(lights.Length, MostCarried)];
+        var count = 0;
+        foreach (PointLight one in lights)
+        {
+            if (count == points.Length)
+            {
+                break;
+            }
+
+            if (Of(one.Position, one.Colour, one.Radius, A(one, _shape)) is { } light)
+            {
+                points[count++] = light;
+            }
+        }
+
+        var copy = (SceneLight)MemberwiseClone();
+        copy._carried = count == points.Length ? points : points[..count];
+        return copy;
+    }
+
+    /// <summary>What stands for a light's light_position_data.a under a reading.</summary>
+    private static float A(PointLight one, PointShape shape) => shape switch
+    {
+        PointShape.One => 1f,
+        PointShape.Penumbra => one.PenumbraDist,
+        _ => 0f,
+    };
 
     /// <summary>What stands for a room light's light_position_data.a, which no file names - a candidate reading.</summary>
     public enum PointShape
@@ -365,7 +432,7 @@ public sealed class SceneLight
     /// <param name="Sun">How much of the sun reached it, nought to one - nought where the light has no sun.</param>
     /// <param name="SunFacing">How squarely it faces the sun, its normal's dot with the way to it - nought where it faces away or there is no sun.</param>
     /// <param name="SunDiffuse">The sun's diffuse light.</param>
-    /// <param name="RoomDiffuse">The room's point lights' diffuse light, the player's left out.</param>
+    /// <param name="RoomDiffuse">The room's point lights' diffuse light and that of the lights a model carries (<see cref="Carried"/>), the player's left out.</param>
     /// <param name="PlayerDiffuse">The player's lamp's diffuse light.</param>
     /// <param name="Cube">The diffuse cube's share of the ambient.</param>
     /// <param name="GiStandIn">The flat light standing for the share GI owns - gi_env_occlusion of the flat ambient.</param>
@@ -914,36 +981,36 @@ public sealed class SceneLight
             {
                 for (int at = _cellStarts[cell], upto = _cellStarts[cell + 1]; at < upto; at++)
                 {
-                    ref readonly Point one = ref _lights[_cellEntries[at]];
-                    Vector3 offset = one.Position - place;
-                    float squared = offset.LengthSquared();
-                    if (squared >= one.Cutoff * one.Cutoff)
+                    if (Reaching(in _lights[_cellEntries[at]], place, normal, out Vector3 light, out Vector3 towards))
                     {
-                        continue;
-                    }
+                        Vector3 diffused = diffuse, shone = shine;
+                        Lit(light, towards, normal, toEye, facing, lobes, specular, gloss, ref diffuse, ref shine);
+                        if (glints)
+                        {
+                            Glinted(light, towards, waves, toEye, wavesFacing, specular, gloss, ref shine);
+                        }
 
-                    float distance = MathF.Sqrt(squared);
-                    float ratio = distance / one.Cutoff;
-                    float fade = MathF.Max(0f, 1f - (ratio * ratio * ratio * ratio));
-                    float divisor = (distance / one.Core) + 1f;
-                    float attenuation = MathF.Min(10f, one.Zero * fade * fade / (divisor * divisor));
-                    if (!(attenuation > 0f))
-                    {
-                        continue;
+                        sink.Light(_cellEntries[at], diffuse - diffused, shine - shone);
+                        total += light;
                     }
-
-                    Vector3 light = one.Colour * attenuation;
-                    Vector3 towards = distance > 1e-4f ? offset / distance : normal;
-                    Vector3 diffused = diffuse, shone = shine;
-                    Lit(light, towards, normal, toEye, facing, lobes, specular, gloss, ref diffuse, ref shine);
-                    if (glints)
-                    {
-                        Glinted(light, towards, waves, toEye, wavesFacing, specular, gloss, ref shine);
-                    }
-
-                    sink.Light(_cellEntries[at], diffuse - diffused, shine - shone);
-                    total += light;
                 }
+            }
+        }
+
+        // THE LIGHTS THE MODEL CARRIES ON ITS BONES, every one asked - a handful, moving with the pose (Carrying) - counted among the room's.
+        for (var at = 0; at < _carried.Length; at++)
+        {
+            if (Reaching(in _carried[at], place, normal, out Vector3 light, out Vector3 towards))
+            {
+                Vector3 diffused = diffuse, shone = shine;
+                Lit(light, towards, normal, toEye, facing, lobes, specular, gloss, ref diffuse, ref shine);
+                if (glints)
+                {
+                    Glinted(light, towards, waves, toEye, wavesFacing, specular, gloss, ref shine);
+                }
+
+                sink.Light(_lights.Length + at, diffuse - diffused, shine - shone);
+                total += light;
             }
         }
 
@@ -1153,34 +1220,32 @@ public sealed class SceneLight
             {
                 for (int at = _cellStarts[cell], upto = _cellStarts[cell + 1]; at < upto; at++)
                 {
-                    ref readonly Point one = ref _lights[_cellEntries[at]];
-                    Vector3 offset = one.Position - place;
-                    float squared = offset.LengthSquared();
-                    if (squared >= one.Cutoff * one.Cutoff)
+                    if (Reaching(in _lights[_cellEntries[at]], place, normal, out Vector3 light, out Vector3 towards))
                     {
-                        continue;
-                    }
+                        WaterLit(light, towards, normal, ref diffuse, ref through);
+                        if (glints)
+                        {
+                            Glinted(light, towards, normal, toEye, facing, specular, gloss, ref shine);
+                        }
 
-                    float distance = MathF.Sqrt(squared);
-                    float ratio = distance / one.Cutoff;
-                    float fade = MathF.Max(0f, 1f - (ratio * ratio * ratio * ratio));
-                    float divisor = (distance / one.Core) + 1f;
-                    float attenuation = MathF.Min(10f, one.Zero * fade * fade / (divisor * divisor));
-                    if (!(attenuation > 0f))
-                    {
-                        continue;
+                        total += light;
                     }
-
-                    Vector3 light = one.Colour * attenuation;
-                    Vector3 towards = distance > 1e-4f ? offset / distance : normal;
-                    WaterLit(light, towards, normal, ref diffuse, ref through);
-                    if (glints)
-                    {
-                        Glinted(light, towards, normal, toEye, facing, specular, gloss, ref shine);
-                    }
-
-                    total += light;
                 }
+            }
+        }
+
+        // AND THE LIGHTS THE MODEL CARRIES - see Shaded.
+        for (var at = 0; at < _carried.Length; at++)
+        {
+            if (Reaching(in _carried[at], place, normal, out Vector3 light, out Vector3 towards))
+            {
+                WaterLit(light, towards, normal, ref diffuse, ref through);
+                if (glints)
+                {
+                    Glinted(light, towards, normal, toEye, facing, specular, gloss, ref shine);
+                }
+
+                total += light;
             }
         }
 
@@ -1304,6 +1369,37 @@ public sealed class SceneLight
             float fresnel = GlossLight.Fresnel(Math.Clamp(Vector3.Dot(toEye, half), 0f, 1f));
             shine += light * lobe * (new Vector3(fresnel) + (specular * (1f - fresnel)));
         }
+    }
+
+    /// <summary>
+    /// A point light's light at a place and the way to it - GetPointCutoffRadius's cutoff and ComputePointLightParamsNew's fall-off, the grid's
+    /// and the carried lights' alike - or false where it adds nothing there.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool Reaching(in Point one, Vector3 place, Vector3 normal, out Vector3 light, out Vector3 towards)
+    {
+        Vector3 offset = one.Position - place;
+        float squared = offset.LengthSquared();
+        if (squared >= one.Cutoff * one.Cutoff)
+        {
+            light = towards = default;
+            return false;
+        }
+
+        float distance = MathF.Sqrt(squared);
+        float ratio = distance / one.Cutoff;
+        float fade = MathF.Max(0f, 1f - (ratio * ratio * ratio * ratio));
+        float divisor = (distance / one.Core) + 1f;
+        float attenuation = MathF.Min(10f, one.Zero * fade * fade / (divisor * divisor));
+        if (!(attenuation > 0f))
+        {
+            light = towards = default;
+            return false;
+        }
+
+        light = one.Colour * attenuation;
+        towards = distance > 1e-4f ? offset / distance : normal;
+        return true;
     }
 
     /// <summary>A light's precomputed numbers - GetPointCutoffRadius and ComputePointLightParamsNew's constants - or null for one that adds nothing.</summary>
