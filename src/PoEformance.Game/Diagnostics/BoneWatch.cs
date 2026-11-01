@@ -359,12 +359,12 @@ public sealed class BoneWatch
         Line = "looking for each piece's skeleton by its rest and in the world, in the memory the game writes - stand still until the banner turns green";
         PoseHuntResult result = PoseHunt.Find(_reader, regions, rigs, pieces.Count > 0 ? pieces[0].Object : player.Address, _hunting, places);
         head.AddRange(result.Lines.Select(line => "  " + line));
-        head.Add("  array\trig\tframe\tlayout\tstride\tbone 0's x\tfixed bones at rest\tbones agreeing\tsimulated bones from their rest");
+        head.Add("  array\trig\tframe\tlayout\tstride\tbone 0's x\tfixed bones at rest\tbones agreeing\tsimulated bones from their rest\tbetween the search's two reads");
         foreach (PoseArray array in result.Arrays)
         {
             head.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  array\t{array.Rig}\t{array.Frame}\t{array.Layout}\t{array.Stride}\t0x{array.First:X}\t{array.Matched} of {array.Fixed}\t{array.Votes}\t{array.Stray:0.###}"));
+                $"  array\t{array.Rig}\t{array.Frame}\t{array.Layout}\t{array.Stride}\t0x{array.First:X}\t{array.Matched} of {array.Fixed}\t{array.Votes}\t{array.Stray:0.###}\t{(array.Moving ? "moved" : "still")}"));
         }
 
         // EACH PIECE'S PLACE IN THE WORLD watched as a block of its own, once a world array or a candidate names it: what they are taken
@@ -470,9 +470,11 @@ public sealed class BoneWatch
             return;
         }
 
-        // THE WINDOWS, joined where they meet: a world array of a rig no fixed bone of which agreed still lies among its candidates.
+        // THE WINDOWS, joined where they meet: a world array of a rig no fixed bone of which agreed still lies among its candidates. Those
+        // that moved between the search's two reads first (PoseHunt.Changing), then the simulated bones', the nearest their length first.
         WorldCandidate[] chosen = [.. result.Candidates
-            .OrderByDescending(one => one.Parent >= 0)
+            .OrderByDescending(one => one.Moving)
+            .ThenByDescending(one => one.Parent >= 0)
             .ThenBy(one => one.Parent >= 0 ? MathF.Abs(one.Ratio - 1f) : one.Ratio)];
         var windows = new List<(ulong From, ulong To, List<WorldCandidate> Inside)>();
         int bytes = 0, past = 0;
@@ -500,6 +502,17 @@ public sealed class BoneWatch
             }
         }
 
+        // EVERY PIECE'S PLACE MADE A BLOCK FIRST: made inside the loop below it would come after a window, and the window's candidates
+        // after it would take the place's block for their own - v0.1.407 numbered two of the 06:00 capture's 776 so (2026-11-01).
+        var placeIndex = new Dictionary<int, int>();
+        foreach (WorldCandidate candidate in chosen)
+        {
+            if (!placeIndex.ContainsKey(candidate.Place))
+            {
+                placeIndex[candidate.Place] = placeOf(candidate.Place);
+            }
+        }
+
         byte[] probe = new byte[(int)windows.Select(window => window.To - window.From).DefaultIfEmpty(0UL).Max()];
         foreach ((ulong from, ulong to, List<WorldCandidate> inside) in windows.OrderBy(window => window.From))
         {
@@ -515,10 +528,11 @@ public sealed class BoneWatch
                 from,
                 size,
                 []));
+            int window = found.Blocks.Count - 1;
             foreach (WorldCandidate candidate in inside)
             {
                 found.Candidates.Add(new BoneWatchSeries.Candidate(
-                    found.Blocks.Count - 1, (int)(candidate.At - from), candidate.Layout, placeOf(candidate.Place), candidate.Bone, candidate.Parent));
+                    window, (int)(candidate.At - from), candidate.Layout, placeIndex[candidate.Place], candidate.Bone, candidate.Parent));
             }
         }
 

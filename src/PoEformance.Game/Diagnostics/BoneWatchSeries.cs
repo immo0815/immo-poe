@@ -59,6 +59,47 @@ public sealed class BoneWatchSeries
     /// <summary>Most rows of a series table - one every <see cref="SeriesStep"/> s over a watch.</summary>
     private const double SeriesStep = 1.0 / 30;
 
+    /// <summary>How near its first read a place must stay throughout, in world units, to count as still - CHOSEN.</summary>
+    private const float StillWorld = 1f;
+
+    /// <summary>How far a World may turn from its first read, in degrees, and still count as still - CHOSEN.</summary>
+    private const float StillTurn = 0.5f;
+
+    /// <summary>How far he must have walked along his path for a still World to say anything - CHOSEN.</summary>
+    private const float LeastWalk = 100f;
+
+    /// <summary>What a place near a piece did against the piece over the watch.</summary>
+    private enum Following
+    {
+        /// <summary>Not read with its piece's World.</summary>
+        Unread,
+
+        /// <summary>Its piece's World held still, so nothing is told.</summary>
+        PieceStill,
+
+        /// <summary>It held still in the world while its piece moved - left behind.</summary>
+        Still,
+
+        /// <summary>It went with its piece in the world and kept near one place in the piece's frame.</summary>
+        Follows,
+
+        /// <summary>It moved, but not with its piece.</summary>
+        Otherwise,
+    }
+
+    /// <summary>
+    /// How a piece's place went over the watch: its reads holding a World and their span, its root's path read to read, its greatest distance
+    /// and turn from its first read, and its scale.
+    /// </summary>
+    private readonly record struct PlaceTravel(int Reads, double Span, float Along, float Most, float Turned, float LeastScale, float MostScale)
+    {
+        /// <summary>Whether it held still: within <see cref="StillWorld"/> and <see cref="StillTurn"/> of its first read throughout.</summary>
+        public bool Still => Most < StillWorld && Turned < StillTurn;
+    }
+
+    /// <summary>One candidate read over the watch: its line, its swing where it was taken for a simulated bone, how far it went in the world and in its piece's frame - NaN for not read with its World.</summary>
+    private readonly record struct CandidateRead(Candidate Candidate, string Line, BoneSwing? Swing, float Moved, float Wandered);
+
     /// <summary>One block read again and again: its name (the way to it), address, size and every read with its time.</summary>
     public sealed record Block(string Name, ulong Address, int Size, List<(double At, byte[] Bytes)> Reads);
 
@@ -515,7 +556,11 @@ public sealed class BoneWatchSeries
     {
         var lines = new List<string>(Head);
         SkeletonLines(lines);
-        CandidateLines(lines);
+        PlaceTravel[] travels = [.. Places.Select(Travel)];
+        CandidateRead[] candidates = [.. Candidates.Select(Candidate1)];
+        Following[] following = [.. candidates.Select(one => Follow(one, travels[one.Candidate.Place]))];
+        PlaceLines(lines, travels, candidates, following);
+        CandidateLines(lines, candidates, following);
         lines.Add(string.Empty);
         lines.Add("=== the runs of turn matrices in the watched blocks - a skeleton's bones side by side - each matrix against the run's first: how far it turns on it over the watch and how often; a held weapon's own bones hold still on its root, a simulated bone (phys_) does not");
         int found = 0;
@@ -687,66 +732,193 @@ public sealed class BoneWatchSeries
     }
 
     /// <summary>
-    /// The places near the pieces in the world (PoseWorld): each taken into its piece's frame by the World read with it at every sweep -
-    /// where it stood against its bone, how far it moved there and in the world, and, for one taken for a simulated bone, its swing on that
-    /// bone's fixed ancestor - those swinging first, the most first, with a table of the swingers over time beside the player's speed.
+    /// How a piece's place went over the watch (<see cref="PlaceTravel"/>), from every read of its block that holds a World where it was
+    /// found.
     /// </summary>
-    private void CandidateLines(List<string> lines)
+    private PlaceTravel Travel(Place place)
+    {
+        int reads = 0;
+        double first = 0, last = 0;
+        Vector3 start = default, previous = default;
+        Quaternion turn0 = Quaternion.Identity;
+        float along = 0f, most = 0f, turned = 0f, least = float.MaxValue, largest = 0f;
+        foreach ((double at, byte[] bytes) in Blocks[place.Block].Reads)
+        {
+            if (!PoseWorld.IsWorld(bytes, place.Offset))
+            {
+                continue;
+            }
+
+            Matrix4x4 world = PoseWorld.Read(bytes, place.Offset);
+            var root = new Vector3(world.M41, world.M42, world.M43);
+            Quaternion turn = TurnAt(bytes, place.Offset, 16);
+            float scale = PoseWorld.Scale(world);
+            if (reads == 0)
+            {
+                start = previous = root;
+                turn0 = turn;
+                first = at;
+            }
+            else
+            {
+                along += Vector3.Distance(root, previous);
+                most = MathF.Max(most, Vector3.Distance(root, start));
+                turned = MathF.Max(turned, Degrees(turn0, turn));
+                previous = root;
+            }
+
+            least = MathF.Min(least, scale);
+            largest = MathF.Max(largest, scale);
+            last = at;
+            reads++;
+        }
+
+        return new PlaceTravel(reads, last - first, along, most, turned, reads > 0 ? least : 0f, largest);
+    }
+
+    /// <summary>
+    /// What a candidate did against its piece (<see cref="Following"/>): left behind where it held still while the piece moved; following
+    /// where it went at least half as far as the piece in the world and kept within a quarter of that of one place in the piece's frame -
+    /// both CHOSEN.
+    /// </summary>
+    private static Following Follow(CandidateRead read, PlaceTravel piece)
+        => !float.IsFinite(read.Wandered) ? Following.Unread
+            : piece.Still ? Following.PieceStill
+            : read.Moved < StillWorld ? Following.Still
+            : read.Moved >= piece.Most / 2f && read.Wandered <= read.Moved / 4f ? Following.Follows
+            : Following.Otherwise;
+
+    /// <summary>A word for a candidate's <see cref="Following"/>, at the head of its line.</summary>
+    private static string Word(Following following) => following switch
+    {
+        Following.Follows => "FOLLOWS ITS PIECE",
+        Following.Still => "left behind",
+        Following.Otherwise => "moves otherwise",
+        Following.PieceStill => "its piece still",
+        _ => "unread",
+    };
+
+    /// <summary>
+    /// The pieces' places in the world as read with every sweep (PiecePlacement.World): how far each root went along its path and at most
+    /// from its first read, how far it turned and its scale - beside his own walk - and what the places near it did. A World that holds
+    /// still while he walks is not the piece's live placement, and nothing taken back through it can be read: the 06:00 capture's focus held
+    /// its World to the bit while he walked 4,230 units (2026-11-01, v0.1.407).
+    /// </summary>
+    private void PlaceLines(List<string> lines, PlaceTravel[] travels, CandidateRead[] candidates, Following[] following)
     {
         lines.Add(string.Empty);
         lines.Add(string.Create(
             CultureInfo.InvariantCulture,
-            $"=== the places near the pieces in the world (PoseWorld, v0.1.407): three floats near a piece, taken into its frame by its placement's World read with them at each sweep - one standing from a simulated bone's nearest fixed ancestor at that bone's rest distance, or at a fixed bone's rest. In the piece's frame a fixed bone's live copy holds still while the world moves it; a simulated bone's state swings on its ancestor at its length - a pendulum's way, measured as the skeletons' are. Swinging means {LeastSwing} degree or more from least to most at a steady length (0.9 to 1.1 of its rest's)."));
-        if (Candidates.Count == 0)
+            $"=== the pieces' places in the world (PiecePlacement.World), read with every sweep: how far each root went along its path and at most from where it began, how far it turned and its scale, beside his own walk. A World within {StillWorld} unit and {StillTurn} degree of its first read throughout is still - while he walks, no live placement: nothing taken back through it can be read. The places near it: following it (at least half its distance in the world, within a quarter of their own of one place in its frame), left behind (within {StillWorld} unit of where they were found), or moving otherwise"));
+        if (Places.Count == 0)
+        {
+            lines.Add("(no piece's place in the world was watched)");
+            return;
+        }
+
+        (double At, Vector3 Place)[] player = PlayerReads();
+        float walked = 0f;
+        for (var read = 1; read < player.Length; read++)
+        {
+            walked += Vector3.Distance(player[read].Place, player[read - 1].Place);
+        }
+
+        lines.Add(player.Length > 1
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"he walked {walked:0.#} along his path over {player[^1].At - player[0].At:0.0} s, ending {Vector3.Distance(player[^1].Place, player[0].Place):0.#} from where he began")
+            : "(his place was not watched - how far he walked is not told)");
+        for (var index = 0; index < Places.Count; index++)
+        {
+            PlaceTravel travel = travels[index];
+            Block block = Blocks[Places[index].Block];
+            string verdict = travel.Reads < 2 ? string.Create(CultureInfo.InvariantCulture, $"read {travel.Reads} times - nothing told")
+                : !travel.Still ? "it moved"
+                : walked >= LeastWalk ? "STILL WHILE HE WALKED - not the piece's live placement; what is taken back through it is read in a frame that never moved"
+                : "still, as he stood";
+            int near = 0, follows = 0, left = 0, otherwise = 0, unread = 0;
+            for (var at = 0; at < candidates.Length; at++)
+            {
+                if (candidates[at].Candidate.Place != index)
+                {
+                    continue;
+                }
+
+                near++;
+                follows += following[at] == Following.Follows ? 1 : 0;
+                left += following[at] == Following.Still ? 1 : 0;
+                otherwise += following[at] == Following.Otherwise ? 1 : 0;
+                unread += following[at] == Following.Unread ? 1 : 0;
+            }
+
+            string told = travel.Still
+                ? string.Create(CultureInfo.InvariantCulture, $"{near} places near it watched - nothing told of them, their piece held still")
+                : string.Create(CultureInfo.InvariantCulture, $"{near} places near it watched - {follows} following it, {left} left behind, {otherwise} moving otherwise{(unread > 0 ? $", {unread} not read with its World" : string.Empty)}");
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"--- {Path.GetFileName(Places[index].Rig.Piece)}'s World at 0x{block.Address + (ulong)Places[index].Offset:X}: {travel.Reads} reads over {travel.Span:0.0} s - its root went {travel.Along:0.#} along its path and {travel.Most:0.#} at most from where it began, turned up to {travel.Turned:0.#} degrees, its scale {travel.LeastScale:0.####} to {travel.MostScale:0.####}: {verdict}; {told}"));
+        }
+    }
+
+    /// <summary>
+    /// The places near the pieces in the world (PoseWorld): each taken into its piece's frame by the World read with it at every sweep -
+    /// what it did against its piece, where it stood against its bone, how far it moved there and in the world, and, for one taken for a
+    /// simulated bone, its swing on that bone's fixed ancestor - those swinging first, the most first, then those following their piece,
+    /// with a table of the swingers over time beside the player's speed.
+    /// </summary>
+    private void CandidateLines(List<string> lines, CandidateRead[] read, Following[] following)
+    {
+        lines.Add(string.Empty);
+        lines.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"=== the places near the pieces in the world (PoseWorld, v0.1.407): three floats near a piece, taken into its frame by its placement's World read with them at each sweep - one standing from a simulated bone's nearest fixed ancestor at that bone's rest distance, or at a fixed bone's rest. In the piece's frame a fixed bone's live copy holds still while the world moves it; a simulated bone's state swings on its ancestor at its length - a pendulum's way, measured as the skeletons' are. Swinging means {LeastSwing} degree or more from least to most at a steady length (0.9 to 1.1 of its rest's). Each line opens with what it did against its piece (the section above)."));
+        if (read.Length == 0)
         {
             lines.Add(Places.Count == 0 ? "(no piece's place in the world was watched)" : "(no place near a piece was kept)");
             return;
         }
 
-        var read = new List<(Candidate Candidate, string Line, BoneSwing? Swing, float Moved)>();
-        foreach (Candidate candidate in Candidates)
-        {
-            read.Add(Candidate1(candidate));
-        }
-
-        bool Swings((Candidate Candidate, string Line, BoneSwing? Swing, float Moved) one)
+        static bool Swings(CandidateRead one)
             => one.Swing is { } swing && swing.Signed.Length > 0 && swing.Signed.Max() - swing.Signed.Min() >= LeastSwing && swing.LeastRatio >= 0.9f && swing.MostRatio <= 1.1f;
 
-        var ranked = read
-            .OrderByDescending(Swings)
-            .ThenByDescending(one => one.Swing is { Signed.Length: > 0 } swing ? swing.Signed.Max() - swing.Signed.Min() : 0f)
-            .ThenByDescending(one => one.Moved)
-            .ToList();
-        int swinging = ranked.Count(Swings);
+        int[] ranked = [.. Enumerable.Range(0, read.Length)
+            .OrderByDescending(at => Swings(read[at]))
+            .ThenByDescending(at => Swings(read[at]) ? read[at].Swing!.Signed.Max() - read[at].Swing!.Signed.Min() : 0f)
+            .ThenByDescending(at => following[at] == Following.Follows)
+            .ThenByDescending(at => read[at].Moved)];
+        int swinging = read.Count(Swings);
         lines.Add(string.Create(
             CultureInfo.InvariantCulture,
-            $"{Candidates.Count} places watched: {Candidates.Count(one => one.Parent >= 0)} taken for a simulated bone, {swinging} of them swinging; {Candidates.Count(one => one.Parent < 0)} at a fixed bone's rest"));
-        foreach ((Candidate candidate, string line, BoneSwing? swing, _) in ranked.Take(MostCandidateLines))
+            $"{read.Length} places watched: {read.Count(one => one.Candidate.Parent >= 0)} taken for a simulated bone, {swinging} of them swinging; {read.Count(one => one.Candidate.Parent < 0)} at a fixed bone's rest - {following.Count(one => one == Following.Follows)} following their piece, {following.Count(one => one == Following.Still)} left behind, {following.Count(one => one == Following.Otherwise)} moving otherwise, {following.Count(one => one == Following.PieceStill)} beside a piece that held still, {following.Count(one => one == Following.Unread)} not read with their piece's World"));
+        foreach (int at in ranked.Take(MostCandidateLines))
         {
-            lines.Add(line);
-            if (swing is not null && Swings((candidate, line, swing, 0)))
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {Word(following[at])}: {read[at].Line.TrimStart()}"));
+            if (read[at].Swing is { } swing && Swings(read[at]))
             {
                 SwingLines(swing, lines);
             }
         }
 
-        if (ranked.Count > MostCandidateLines)
+        if (ranked.Length > MostCandidateLines)
         {
-            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  ({ranked.Count - MostCandidateLines} more not written - none of them swinging)"));
+            int unwritten = ranked.Length - MostCandidateLines;
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  ({unwritten} more not written - {ranked.Skip(MostCandidateLines).Count(at => Swings(read[at]))} of them swinging, {ranked.Skip(MostCandidateLines).Count(at => following[at] == Following.Follows)} following their piece)"));
         }
 
         // THE SWINGERS OVER TIME, as a skeleton's table.
-        BoneSwing[] shown = [.. ranked.Where(Swings).Select(one => one.Swing!).Take(MostSwingColumns)];
-        Block? first = ranked.Where(Swings).Select(one => Blocks[one.Candidate.Block]).FirstOrDefault();
-        if (shown.Length > 0 && first is not null)
+        BoneSwing[] shown = [.. ranked.Where(at => Swings(read[at])).Select(at => read[at].Swing!).Take(MostSwingColumns)];
+        int first = ranked.Where(at => Swings(read[at])).DefaultIfEmpty(-1).First();
+        if (shown.Length > 0 && first >= 0)
         {
             lines.Add("  the swinging places over time:");
-            SwingTable(first, shown, PlayerReads(), lines);
+            SwingTable(Blocks[read[first].Candidate.Block], shown, PlayerReads(), lines);
         }
     }
 
-    /// <summary>One candidate read over the watch: its line, its swing where it was taken for a simulated bone, and how far it moved in the world.</summary>
-    private (Candidate Candidate, string Line, BoneSwing? Swing, float Moved) Candidate1(Candidate candidate)
+    /// <summary>One candidate read over the watch (<see cref="CandidateRead"/>).</summary>
+    private CandidateRead Candidate1(Candidate candidate)
     {
         Place place = Places[candidate.Place];
         PoseRig rig = place.Rig;
@@ -775,7 +947,7 @@ public sealed class BoneWatchSeries
             $"  0x{block.Address + (ulong)candidate.Offset:X} {(candidate.Layout == PoseLayout.Packed ? "side by side" : "16 bytes apart")}, {Path.GetFileName(rig.Piece)}");
         if (framed.Count == 0)
         {
-            return (candidate, head + ": not read with its piece's World", null, 0f);
+            return new CandidateRead(candidate, head + ": not read with its piece's World", null, 0f, float.NaN);
         }
 
         float moved = world.Max(one => Vector3.Distance(one, world[0]));
@@ -786,9 +958,9 @@ public sealed class BoneWatchSeries
             // A FIXED BONE'S REST: how near it stays in the piece's frame while the world moves it.
             Vector3 rest = candidate.Bone >= 0 && candidate.Bone < rig.Count ? rig.Model[candidate.Bone].Translation : Vector3.Zero;
             float least = framed.Min(one => Vector3.Distance(one, rest)), most = framed.Max(one => Vector3.Distance(one, rest));
-            return (candidate, head + string.Create(
+            return new CandidateRead(candidate, head + string.Create(
                 CultureInfo.InvariantCulture,
-                $": at {name}'s rest - {least:0.###}..{most:0.###} from it in the piece's frame, moved {moved:0.##} in the world and {wandered:0.##} in the piece's frame over {times[^1] - times[0]:0.0} s; {beside}"), null, moved);
+                $": at {name}'s rest - {least:0.###}..{most:0.###} from it in the piece's frame, moved {moved:0.##} in the world and {wandered:0.##} in the piece's frame over {times[^1] - times[0]:0.0} s; {beside}"), null, moved, wandered);
         }
 
         // A SIMULATED BONE'S STATE: its way from its fixed ancestor against the rest's, as a pendulum's.
@@ -803,9 +975,9 @@ public sealed class BoneWatchSeries
         }
 
         BoneSwing swing = PoseSwing.Measure(name, rig.Names[candidate.Parent], "place in the world", [.. times], vectors, restWay.Length(), ratios);
-        return (candidate, head + string.Create(
+        return new CandidateRead(candidate, head + string.Create(
             CultureInfo.InvariantCulture,
-            $": taken for {name} on {rig.Names[candidate.Parent]} - its distance {ratios.Min():0.###}..{ratios.Max():0.###} of the rest's {restWay.Length():0.##}, {vectors.Min(one => one.Length()):0.#}..{vectors.Max(one => one.Length()):0.#} degrees from the rest's way, moved {moved:0.##} in the world and {wandered:0.##} in the piece's frame over {times[^1] - times[0]:0.0} s; {beside}"), swing, moved);
+            $": taken for {name} on {rig.Names[candidate.Parent]} - its distance {ratios.Min():0.###}..{ratios.Max():0.###} of the rest's {restWay.Length():0.##}, {vectors.Min(one => one.Length()):0.#}..{vectors.Max(one => one.Length()):0.#} degrees from the rest's way, moved {moved:0.##} in the world and {wandered:0.##} in the piece's frame over {times[^1] - times[0]:0.0} s; {beside}"), swing, moved, wandered);
     }
 
     /// <summary>The floats round a candidate at its first read - four before its x and seven from it - for what the engine keeps beside it.</summary>

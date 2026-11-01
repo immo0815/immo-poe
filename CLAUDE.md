@@ -1038,6 +1038,20 @@ DECIDED from the live client: a new search, then a new capture - and a banner ("
   in the overlay now). Any part that needs the person to act asks so.
 Take the capture with the STAFF IN HAND, out of town: press, stand still while the banner is amber, and at the high tone walk, stop and turn until
 the low one.
+WHAT v0.1.407'S CAPTURE SAID (2026-11-01 06:00, The Red Vale, taken through the agent link; the wand and focus in hand, the person walking 4,230
+units along his path): the sweep took 6.1 s for 7.1 GB where v0.1.404's had taken 101, leaving out 5.6 GB the game cannot write and 4.1 GB of the
+driver's heaps. But what it kept was mostly still: the focus's PiecePlacement.World held to the bit while he walked (so nothing taken back through
+it could be read), eight copies of the body's rest a rig, and of the 776 places near the pieces 487 still in the world. 140 followed their piece -
+nearly all the cape's (GoblinShamanHeld.ao, its root and three phys_ ropes), wandering 7 to 20 units in its frame at no steady length: no pendulum.
+Two candidates were filed under the wrong block (the place's World made a block between a window and its candidates), and the cape's rig - one fixed
+bone - made "arrays" at every stride from one copy of its root. SO v0.1.409:
+- WHAT IS LIVE COMES FIRST (`PoseHunt.Changing`, `LiveWait` 300 ms, CHOSEN): every array and place the search keeps is read again after a moment,
+  and what changed is kept before what did not (`PoseArray.Moving`, `WorldCandidate.Moving`; the head's arrays say "moved" or "still").
+- A RIG IN THE WORLD NEEDS THREE FIXED BONES for an array (`PoseWorld.LeastFixedBones`); its copies are still kept alone.
+- THE READING SAYS WHAT EACH PIECE'S PLACE DID (`BoneWatchSeries.PlaceLines`): its root's path, how far it went and turned beside his walk - "STILL
+  WHILE HE WALKED" for a World that is no live placement - and each place near it FOLLOWS ITS PIECE (half its distance or more in the world, within a
+  quarter of that of one place in its frame), is LEFT BEHIND (within a unit of where it was found) or moves otherwise (all CHOSEN), followers first.
+- The place's block is made before any window, so every candidate reads its own window.
 
 ## Verify against the game, not against yourself
 

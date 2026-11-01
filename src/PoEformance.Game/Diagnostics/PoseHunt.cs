@@ -98,6 +98,9 @@ public sealed record PoseArray(int Rig, PoseFrame Frame, PoseLayout Layout, int 
 {
     /// <summary>For an array in the world, its piece's place by its index in the places looked for - -1 for the other frames.</summary>
     public int Place { get; init; } = -1;
+
+    /// <summary>Whether it changed between the search's two reads of it (<see cref="PoseHunt.Changing"/>) - a live pose, not a copy of the rest.</summary>
+    public bool Moving { get; init; }
 }
 
 /// <summary>What the search looked for and found: the needles, the places found and agreed on, and the arrays kept.</summary>
@@ -154,6 +157,13 @@ public static class PoseHunt
 
     /// <summary>The least share of a rig's fixed bones an array must hold at their rest. CHOSEN.</summary>
     public const double LeastShare = 0.5;
+
+    /// <summary>
+    /// How long the search waits between its two reads of what it found, to tell a live pose from a copy of one - CHOSEN: a few frames,
+    /// in which a live pose moves by hundredths while the person stands still. The 06:00 capture of 2026-11-01 kept eight copies of the
+    /// body's rest a rig, every one of them still over the watch, and the arrays and places it kept in the world were two thirds still too.
+    /// </summary>
+    public static readonly TimeSpan LiveWait = TimeSpan.FromMilliseconds(300);
 
     /// <summary>The bytes from one bone's record to the next an array may take: packed positions, transforms of their own, 3x4 and 4x4 matrices and those padded.</summary>
     public static readonly int[] Strides = [12, 16, 32, 40, 44, 48, 52, 56, 64, 72, 80, 96, 112, 128, 144, 160, 192, 256];
@@ -250,8 +260,15 @@ public static class PoseHunt
     /// <param name="anchor">An address in the game's heap to look out from - a piece's object.</param>
     /// <param name="progress">How far the sweep has got, and its stop.</param>
     /// <param name="places">The pieces whose bones are looked for in the world too, each by its own rig - null or empty for none.</param>
+    /// <param name="wait">How long it waits between its two reads of what it found - <see cref="LiveWait"/> where not given.</param>
     public static PoseHuntResult Find(
-        IMemoryReader reader, IMemoryRegions regions, IReadOnlyList<PoseRig> rigs, ulong anchor, FloatHuntProgress? progress, IReadOnlyList<PiecePlace>? places = null)
+        IMemoryReader reader,
+        IMemoryRegions regions,
+        IReadOnlyList<PoseRig> rigs,
+        ulong anchor,
+        FloatHuntProgress? progress,
+        IReadOnlyList<PiecePlace>? places = null,
+        TimeSpan? wait = null)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(regions);
@@ -267,12 +284,12 @@ public static class PoseHunt
 
         var writable = new WritableRegions(regions);
         FloatHuntResult swept = FloatHunt.Run(reader, writable, needles, anchor, progress, budget: 2 * HeapScan.ByteBudget);
-        List<PoseArray> arrays = Arrays(reader, rigs, owners, [.. swept.Sightings.Where(one => one.Needle < rests)], out int addresses, out int read, anchor);
+        List<PoseArray> arrays = Arrays(reader, rigs, owners, [.. swept.Sightings.Where(one => one.Needle < rests)], out int addresses, out int read, anchor, wait ?? LiveWait);
         var lines = new List<string>
         {
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"the sweep: {rests} needles for {rigs.Count} rigs and {needles.Count - rests} for {places?.Count ?? 0} pieces in the world, {swept.BytesScanned / 1e9:0.0} GB of {swept.RegionsWalked:N0} regions on {swept.Workers} threads in {swept.Took.TotalSeconds:0.0} s{(swept.Stopped ? " (stopped)" : swept.Truncated ? " (its budget ended it)" : string.Empty)} - left out {writable.Unwritable / 1e9:0.0} GB the game cannot write and {writable.Slow / 1e9:0.0} GB of the driver's uncached and write-combined heaps; {swept.Sightings.Count(one => one.Needle < rests)} places of the rests found ({swept.Capped.Count(one => one < rests)} needles past their {MostRestPlaces}), {addresses} addresses three bones agreed on, {read} read whole, {arrays.Count} kept"),
+                $"the sweep: {rests} needles for {rigs.Count} rigs and {needles.Count - rests} for {places?.Count ?? 0} pieces in the world, {swept.BytesScanned / 1e9:0.0} GB of {swept.RegionsWalked:N0} regions on {swept.Workers} threads in {swept.Took.TotalSeconds:0.0} s{(swept.Stopped ? " (stopped)" : swept.Truncated ? " (its budget ended it)" : string.Empty)} - left out {writable.Unwritable / 1e9:0.0} GB the game cannot write and {writable.Slow / 1e9:0.0} GB of the driver's uncached and write-combined heaps; {swept.Sightings.Count(one => one.Needle < rests)} places of the rests found ({swept.Capped.Count(one => one < rests)} needles past their {MostRestPlaces}), {addresses} addresses three bones agreed on, {read} read whole, {arrays.Count} kept - {arrays.Count(one => one.Moving)} of them moving between two reads {(wait ?? LiveWait).TotalSeconds:0.##} s apart"),
         };
         foreach (FloatHuntKind kind in swept.Kinds.Take(6))
         {
@@ -289,7 +306,7 @@ public static class PoseHunt
             CultureInfo.InvariantCulture,
             $"the world: {places.Count} pieces looked for round their placement's World, {swept.Sightings.Count(one => one.Needle >= rests)} places in their boxes ({swept.Capped.Count(one => one >= rests)} boxes past their {PoseWorld.MostPlaces}); a place stands for a fixed bone within {PoseWorld.Tolerance} of its rest in the model's units, for a simulated one at {1 - PoseWorld.RatioSlack:0.##} to {1 + PoseWorld.RatioSlack:0.##} of its rest distance from its nearest fixed ancestor"));
         (List<PoseArray> world, List<WorldCandidate> candidates, List<PiecePlace> fresh) = PoseWorld.Found(
-            reader, rigs, places, [.. swept.Sightings.Where(one => one.Needle >= rests).Select(one => (one.At, worldOf[one.Needle - rests].Place, worldOf[one.Needle - rests].Layout))], lines);
+            reader, rigs, places, [.. swept.Sightings.Where(one => one.Needle >= rests).Select(one => (one.At, worldOf[one.Needle - rests].Place, worldOf[one.Needle - rests].Layout))], lines, wait ?? LiveWait);
         return new PoseHuntResult([.. arrays, .. world], lines) { Candidates = candidates, Places = fresh };
     }
 
@@ -308,8 +325,19 @@ public static class PoseHunt
     /// The piece's object: of arrays holding as much of their rest, the nearer it are kept first - in a town another player wielding the
     /// same staff holds an array of the same rig.
     /// </param>
+    /// <param name="wait">
+    /// How long it waits between its two reads of every array found, those that changed kept first (<see cref="Changing"/>) - none where
+    /// not given.
+    /// </param>
     public static List<PoseArray> Arrays(
-        IMemoryReader reader, IReadOnlyList<PoseRig> rigs, IReadOnlyList<List<Owner>> owners, IReadOnlyList<FloatSighting> sightings, out int addresses, out int read, ulong anchor = 0)
+        IMemoryReader reader,
+        IReadOnlyList<PoseRig> rigs,
+        IReadOnlyList<List<Owner>> owners,
+        IReadOnlyList<FloatSighting> sightings,
+        out int addresses,
+        out int read,
+        ulong anchor = 0,
+        TimeSpan wait = default)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(rigs);
@@ -400,17 +428,61 @@ public static class PoseHunt
                 .ThenBy(one => one.Frame)
                 .First())];
 
+        // WHICH ARE LIVE: every array read again after a short wait, those that changed kept first - a copy of the rest never moves.
+        bool[] moving = Changing(reader, [.. kept.Select(one => (one.First, ((rigs[one.Rig].Count - 1) * one.Stride) + Span(one.Layout)))], wait);
+        kept = [.. kept.Select((one, at) => one with { Moving = moving[at] })];
+
         // EACH RIG'S BEST, the rigs the engine simulates a bone of first, at most so many in all.
         return [.. kept
             .GroupBy(one => one.Rig)
             .OrderByDescending(group => rigs[group.Key].SimulatedCount > 0)
             .ThenBy(group => group.Key)
             .SelectMany(group => group
-                .OrderByDescending(one => (double)one.Matched / one.Fixed)
+                .OrderByDescending(one => one.Moving)
+                .ThenByDescending(one => (double)one.Matched / one.Fixed)
                 .ThenBy(one => one.First > anchor ? one.First - anchor : anchor - one.First)
                 .ThenByDescending(one => one.Votes)
                 .Take(MostPerRig))
             .Take(MostArrays)];
+    }
+
+    /// <summary>
+    /// Which of some spans of memory changed over a wait: each read now, then again once the wait is over - one that does not read counts
+    /// as still. With no wait nothing can have changed, and nothing is read.
+    /// </summary>
+    /// <param name="reader">The game's memory.</param>
+    /// <param name="spans">Each span's address and length.</param>
+    /// <param name="wait">How long to wait between the two reads.</param>
+    public static bool[] Changing(IMemoryReader reader, IReadOnlyList<(ulong At, int Bytes)> spans, TimeSpan wait)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(spans);
+        var moving = new bool[spans.Count];
+        if (wait <= TimeSpan.Zero || spans.Count == 0)
+        {
+            return moving;
+        }
+
+        var first = new byte[spans.Count][];
+        for (var at = 0; at < spans.Count; at++)
+        {
+            byte[] bytes = new byte[Math.Max(0, spans[at].Bytes)];
+            first[at] = reader.TryRead(spans[at].At, bytes) ? bytes : [];
+        }
+
+        Thread.Sleep(wait);
+        for (var at = 0; at < spans.Count; at++)
+        {
+            if (first[at].Length == 0)
+            {
+                continue;
+            }
+
+            byte[] again = new byte[first[at].Length];
+            moving[at] = reader.TryRead(spans[at].At, again) && !again.AsSpan().SequenceEqual(first[at]);
+        }
+
+        return moving;
     }
 
     /// <summary>How many bones must agree on an address: three, or every needle a rig has where it has fewer.</summary>
