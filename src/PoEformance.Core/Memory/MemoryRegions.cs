@@ -44,6 +44,63 @@ public readonly record struct MemoryRegion(ulong Address, ulong Size, uint Prote
             return $"{type} {access}{cache}";
         }
     }
+
+    /// <summary>
+    /// Whether the driver maps it uncached or write-combined - the graphics card's upload heaps, which a read crawls through: v0.1.404's
+    /// bone watch spent 1150 of its threads' seconds on 5.2 GB of them against 48 on 7.4 GB of the heap. False where nobody asked.
+    /// </summary>
+    public bool Slow => Protect != 0 && (Protect & 0x600) != 0;
+
+    /// <summary>Whether the game can write it - read and write, copy-on-write, or either with execution. True where nobody asked.</summary>
+    public bool Writable => Protect == 0 || (Protect & 0xFF) is 0x04 or 0x08 or 0x40 or 0x80;
+}
+
+/// <summary>
+/// The regions a search for what the game keeps of its own should read: those it can write, not the driver's uncached or write-combined
+/// heaps - and how much of each it left out, for the report.
+/// </summary>
+/// <remarks>
+/// WHAT IS LEFT OUT CANNOT HOLD A STATE THE GAME KEEPS ON ITS PROCESSOR: memory it cannot write holds what a file mapped in or the program's
+/// image holds, and a write-combined heap is what the processor writes for the card to read - a copy made each frame, not where a state is
+/// kept between frames. The river flow hunt leaves out the same (RiverFlowHunt.Walk).
+/// </remarks>
+/// <param name="all">The target's regions.</param>
+public sealed class WritableRegions(IMemoryRegions all) : IMemoryRegions
+{
+    private long _unwritable;
+    private long _slow;
+
+    /// <summary>The bytes left out because the game cannot write them, over the last walk of the regions.</summary>
+    public long Unwritable => Volatile.Read(ref _unwritable);
+
+    /// <summary>The bytes left out as the driver's uncached or write-combined heaps, over the last walk.</summary>
+    public long Slow => Volatile.Read(ref _slow);
+
+    /// <inheritdoc/>
+    public IEnumerable<MemoryRegion> Regions()
+    {
+        ArgumentNullException.ThrowIfNull(all);
+        long unwritable = 0, slow = 0;
+        Volatile.Write(ref _unwritable, 0);
+        Volatile.Write(ref _slow, 0);
+        foreach (MemoryRegion region in all.Regions())
+        {
+            if (region.Slow)
+            {
+                slow += (long)region.Size;
+                Volatile.Write(ref _slow, slow);
+            }
+            else if (!region.Writable)
+            {
+                unwritable += (long)region.Size;
+                Volatile.Write(ref _unwritable, unwritable);
+            }
+            else
+            {
+                yield return region;
+            }
+        }
+    }
 }
 
 /// <summary>

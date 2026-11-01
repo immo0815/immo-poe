@@ -66,6 +66,12 @@ public enum PoseFrame
 
     /// <summary>Each bone's in the model's - the tree composed, which holds still for a rigid piece at rest.</summary>
     Model,
+
+    /// <summary>
+    /// Each bone's in the game's world - the model's through the piece's placement (PiecePlacement.World), read with every sweep (v0.1.407,
+    /// see PoseWorld).
+    /// </summary>
+    World,
 }
 
 /// <summary>How a bone's translation lies in its record.</summary>
@@ -88,12 +94,23 @@ public enum PoseLayout
 /// <param name="Fixed">How many bones of the rig hold their rest in its frame - neither simulated nor, in the model's frame, under a simulated one.</param>
 /// <param name="Votes">How many bones' rest places, found in the sweep, agreed on this array.</param>
 /// <param name="Stray">How far the rig's simulated bones stood from their rest in this frame when it was found, on average - nought where it has none.</param>
-public sealed record PoseArray(int Rig, PoseFrame Frame, PoseLayout Layout, int Stride, ulong First, int Matched, int Fixed, int Votes, float Stray = 0f);
+public sealed record PoseArray(int Rig, PoseFrame Frame, PoseLayout Layout, int Stride, ulong First, int Matched, int Fixed, int Votes, float Stray = 0f)
+{
+    /// <summary>For an array in the world, its piece's place by its index in the places looked for - -1 for the other frames.</summary>
+    public int Place { get; init; } = -1;
+}
 
 /// <summary>What the search looked for and found: the needles, the places found and agreed on, and the arrays kept.</summary>
-/// <param name="Arrays">The arrays kept, each rig's best first.</param>
+/// <param name="Arrays">The arrays kept, each rig's best first - those in the world after the rest's.</param>
 /// <param name="Lines">What it says of itself, for the report.</param>
-public sealed record PoseHuntResult(IReadOnlyList<PoseArray> Arrays, IReadOnlyList<string> Lines);
+public sealed record PoseHuntResult(IReadOnlyList<PoseArray> Arrays, IReadOnlyList<string> Lines)
+{
+    /// <summary>The places in the world where a simulated bone may be kept, or a fixed bone stands alone (PoseWorld).</summary>
+    public IReadOnlyList<WorldCandidate> Candidates { get; init; } = [];
+
+    /// <summary>The pieces' places as read again once the sweep was done - those the world arrays and candidates name.</summary>
+    public IReadOnlyList<PiecePlace> Places { get; init; } = [];
+}
 
 /// <summary>
 /// Finds each rig's pose in the whole of the game's memory by its rest: every bone's translation where an array of the rig's bones would
@@ -122,6 +139,12 @@ public static class PoseHunt
 
     /// <summary>Most needles a rig is looked for by, in one frame and layout - its most telling bones. CHOSEN.</summary>
     public const int MostNeedles = 12;
+
+    /// <summary>
+    /// Most places kept of one rest, nearest the anchor first - CHOSEN: the 04:49 sweep of 2026-11-01 held 58 of its 118 needles at
+    /// FloatHunt's 64, so an array farther out than 64 copies of a rest went unseen.
+    /// </summary>
+    public const int MostRestPlaces = 256;
 
     /// <summary>Most arrays kept of one rig, the most matched first. CHOSEN.</summary>
     public const int MostPerRig = 8;
@@ -203,7 +226,7 @@ public static class PoseHunt
                                 ? [rest.X, rest.Y, rest.Z]
                                 : [rest.X, float.NaN, float.NaN, float.NaN, rest.Y, float.NaN, float.NaN, float.NaN, rest.Z];
                             needles.Add(new FloatNeedle(
-                                string.Create(CultureInfo.InvariantCulture, $"{System.IO.Path.GetFileName(one.Piece)} {one.Names[bone]} {frame} {layout}"), values, Tolerance));
+                                string.Create(CultureInfo.InvariantCulture, $"{System.IO.Path.GetFileName(one.Piece)} {one.Names[bone]} {frame} {layout}"), values, Tolerance, Most: MostRestPlaces));
                             owners.Add([]);
                         }
 
@@ -217,38 +240,57 @@ public static class PoseHunt
     }
 
     /// <summary>
-    /// Looks for every rig in the whole of memory, nearest <paramref name="anchor"/> first, and keeps the arrays the places found agree on.
+    /// Looks for every rig in the whole of the memory the game writes, nearest <paramref name="anchor"/> first, and keeps the arrays the
+    /// places found agree on - and, where pieces' places are given, the arrays and candidates of their bones in the world (PoseWorld) from the
+    /// same sweep.
     /// </summary>
     /// <param name="reader">The game's memory.</param>
-    /// <param name="regions">Its regions.</param>
+    /// <param name="regions">Its regions - those the game cannot write and the driver's slow heaps are left out (WritableRegions).</param>
     /// <param name="rigs">The rigs.</param>
     /// <param name="anchor">An address in the game's heap to look out from - a piece's object.</param>
     /// <param name="progress">How far the sweep has got, and its stop.</param>
-    public static PoseHuntResult Find(IMemoryReader reader, IMemoryRegions regions, IReadOnlyList<PoseRig> rigs, ulong anchor, FloatHuntProgress? progress)
+    /// <param name="places">The pieces whose bones are looked for in the world too, each by its own rig - null or empty for none.</param>
+    public static PoseHuntResult Find(
+        IMemoryReader reader, IMemoryRegions regions, IReadOnlyList<PoseRig> rigs, ulong anchor, FloatHuntProgress? progress, IReadOnlyList<PiecePlace>? places = null)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(regions);
         ArgumentNullException.ThrowIfNull(rigs);
         (List<FloatNeedle> needles, List<List<Owner>> owners) = Needles(rigs);
+        int rests = needles.Count;
+        var worldOf = new List<(int Place, PoseLayout Layout)>();
+        needles.AddRange(PoseWorld.Needles(rigs, places ?? [], worldOf));
         if (needles.Count == 0)
         {
-            return new PoseHuntResult([], ["no rig had a bone telling enough to look for"]);
+            return new PoseHuntResult([], ["no rig had a bone telling enough to look for, and no piece's place was given"]);
         }
 
-        FloatHuntResult swept = FloatHunt.Run(reader, regions, needles, anchor, progress, budget: 2 * HeapScan.ByteBudget);
-        List<PoseArray> arrays = Arrays(reader, rigs, owners, swept.Sightings, out int addresses, out int read, anchor);
+        var writable = new WritableRegions(regions);
+        FloatHuntResult swept = FloatHunt.Run(reader, writable, needles, anchor, progress, budget: 2 * HeapScan.ByteBudget);
+        List<PoseArray> arrays = Arrays(reader, rigs, owners, [.. swept.Sightings.Where(one => one.Needle < rests)], out int addresses, out int read, anchor);
         var lines = new List<string>
         {
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"the sweep: {needles.Count} needles for {rigs.Count} rigs, {swept.BytesScanned / 1e9:0.0} GB of {swept.RegionsWalked:N0} regions on {swept.Workers} threads in {swept.Took.TotalSeconds:0.0} s{(swept.Stopped ? " (stopped)" : swept.Truncated ? " (its budget ended it)" : string.Empty)}, {swept.Sightings.Count} places found ({swept.Capped.Count} needles past their {FloatHunt.MostPerNeedle}), {addresses} addresses three bones agreed on, {read} read whole, {arrays.Count} kept"),
+                $"the sweep: {rests} needles for {rigs.Count} rigs and {needles.Count - rests} for {places?.Count ?? 0} pieces in the world, {swept.BytesScanned / 1e9:0.0} GB of {swept.RegionsWalked:N0} regions on {swept.Workers} threads in {swept.Took.TotalSeconds:0.0} s{(swept.Stopped ? " (stopped)" : swept.Truncated ? " (its budget ended it)" : string.Empty)} - left out {writable.Unwritable / 1e9:0.0} GB the game cannot write and {writable.Slow / 1e9:0.0} GB of the driver's uncached and write-combined heaps; {swept.Sightings.Count(one => one.Needle < rests)} places of the rests found ({swept.Capped.Count(one => one < rests)} needles past their {MostRestPlaces}), {addresses} addresses three bones agreed on, {read} read whole, {arrays.Count} kept"),
         };
         foreach (FloatHuntKind kind in swept.Kinds.Take(6))
         {
             lines.Add(string.Create(CultureInfo.InvariantCulture, $"  {kind.Kind}: {kind.Regions:N0} regions, {kind.Bytes / 1e9:0.00} GB, read {kind.Reading.TotalSeconds:0.0} s, looked through {kind.Sweeping.TotalSeconds:0.0} s"));
         }
 
-        return new PoseHuntResult(arrays, lines);
+        if (places is not { Count: > 0 })
+        {
+            return new PoseHuntResult(arrays, lines);
+        }
+
+        // THE WORLD: every place a piece's box held, read again with its World of the same moment.
+        lines.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"the world: {places.Count} pieces looked for round their placement's World, {swept.Sightings.Count(one => one.Needle >= rests)} places in their boxes ({swept.Capped.Count(one => one >= rests)} boxes past their {PoseWorld.MostPlaces}); a place stands for a fixed bone within {PoseWorld.Tolerance} of its rest in the model's units, for a simulated one at {1 - PoseWorld.RatioSlack:0.##} to {1 + PoseWorld.RatioSlack:0.##} of its rest distance from its nearest fixed ancestor"));
+        (List<PoseArray> world, List<WorldCandidate> candidates, List<PiecePlace> fresh) = PoseWorld.Found(
+            reader, rigs, places, [.. swept.Sightings.Where(one => one.Needle >= rests).Select(one => (one.At, worldOf[one.Needle - rests].Place, worldOf[one.Needle - rests].Layout))], lines);
+        return new PoseHuntResult([.. arrays, .. world], lines) { Candidates = candidates, Places = fresh };
     }
 
     /// <summary>
@@ -290,7 +332,9 @@ public static class PoseHunt
             }
         }
 
-        var votes = new Dictionary<(int Rig, PoseFrame Frame, PoseLayout Layout, int Stride, ulong First), HashSet<int>>();
+        // A COUNT, NOT A SET OF BONES: a bone's needle in a frame and layout is one, and a place is found once a needle, so each bone votes
+        // for an address once - and with 256 places a rest the keys run to hundreds of thousands, a set each the heavier by far.
+        var votes = new Dictionary<(int Rig, PoseFrame Frame, PoseLayout Layout, int Stride, ulong First), int>();
         foreach (FloatSighting sighting in sightings)
         {
             foreach (Owner owner in owners[sighting.Needle])
@@ -310,12 +354,7 @@ public static class PoseHunt
                     }
 
                     var key = (owner.Rig, owner.Frame, owner.Layout, stride, sighting.At - back);
-                    if (!votes.TryGetValue(key, out HashSet<int>? bones))
-                    {
-                        votes[key] = bones = [];
-                    }
-
-                    bones.Add(owner.Bone);
+                    votes[key] = votes.GetValueOrDefault(key) + 1;
                 }
             }
         }
@@ -323,10 +362,10 @@ public static class PoseHunt
         var found = new List<PoseArray>();
         addresses = 0;
         read = 0;
-        foreach (((int rig, PoseFrame frame, PoseLayout layout, int stride, ulong first), HashSet<int> bones) in votes)
+        foreach (((int rig, PoseFrame frame, PoseLayout layout, int stride, ulong first), int bones) in votes)
         {
             int need = Agreeing(needlesOf.GetValueOrDefault((rig, frame, layout))?.Count ?? 0);
-            if (bones.Count < need)
+            if (bones < need)
             {
                 continue;
             }
@@ -344,7 +383,7 @@ public static class PoseHunt
             (int matched, int fixedBones) = Matching(one, frame, layout, stride, bytes, 0);
             if (fixedBones > 0 && matched >= Math.Max(need, (int)Math.Ceiling(LeastShare * fixedBones)))
             {
-                found.Add(new PoseArray(rig, frame, layout, stride, first, matched, fixedBones, bones.Count, Stray(one, frame, layout, stride, bytes)));
+                found.Add(new PoseArray(rig, frame, layout, stride, first, matched, fixedBones, bones, Stray(one, frame, layout, stride, bytes)));
             }
         }
 

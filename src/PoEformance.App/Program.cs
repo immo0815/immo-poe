@@ -3688,7 +3688,24 @@ internal static class Program
             new PoEformance.Overlay.CaptureWorkProgress(
                 () => bones?.Line ?? "starting",
                 () => bones?.Fraction ?? 0f,
-                () => bones?.Stop()));
+                () => bones?.Stop())
+            {
+                // THE BANNER (v0.1.407, DECIDED from the live client): stand still while it searches, then walk, stop and turn until the low tone.
+                Ask = () => bones?.Now switch
+                {
+                    PoEformance.Game.Diagnostics.BoneWatch.Stage.Searching => new PoEformance.Overlay.CaptureAsk(
+                        false,
+                        "STAND STILL - the bone watch is searching memory",
+                        "When this turns green and a high tone sounds: walk, stop and turn a few times.",
+                        double.NaN),
+                    PoEformance.Game.Diagnostics.BoneWatch.Stage.Watching => new PoEformance.Overlay.CaptureAsk(
+                        true,
+                        "NOW: walk, stop and turn a few times",
+                        "Keep going until the low tone - a swing wants a start and a stop.",
+                        bones.Left),
+                    _ => null,
+                },
+            });
 
         // THE OCEAN MARKUP HUNT: the grid the engine's sea shore is made from, looked for in the terrain at the press - see
         // OceanMarkupHunt - and then the numbers its shore field is drawn by, in the whole of memory on every core - see
@@ -3980,7 +3997,7 @@ internal static class Program
     {
         foreach (PoEformance.Features.RuleSound sound in tick.Sounds)
         {
-            SoundCue.Play(sound.Pitch, sound.Ms);
+            PoEformance.Overlay.SoundCue.Play(sound.Pitch, sound.Ms);
         }
 
         foreach (PoEformance.Features.RuleInput input in tick.Inputs)

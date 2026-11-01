@@ -12,7 +12,11 @@ namespace PoEformance.Core.Diagnostics;
 /// <param name="Tolerance">How far each float may be from its value; nought asks for the exact value.</param>
 /// <param name="Around">How many bytes either side of its first few places to read back with the result - nought for none. See <see cref="FloatDump"/>.</param>
 /// <param name="Dumps">How many of its places to read back - nought for <see cref="FloatHunt.MostDumps"/>.</param>
-public sealed record FloatNeedle(string Name, float[] Values, float Tolerance, int Around = 0, int Dumps = 0);
+/// <param name="Most">
+/// How many of its places are kept, nearest the anchor first - nought for <see cref="FloatHunt.MostPerNeedle"/>. A needle standing for a
+/// whole box of places (the bone watch's world needles, v0.1.407) asks for thousands.
+/// </param>
+public sealed record FloatNeedle(string Name, float[] Values, float Tolerance, int Around = 0, int Dumps = 0, int Most = 0);
 
 /// <summary>The bytes read round a place a needle was found, for a person to see what the game keeps beside it.</summary>
 /// <param name="At">Where the needle was found.</param>
@@ -74,7 +78,7 @@ public sealed record FloatHuntKind(string Kind, long Regions, long Bytes, TimeSp
 /// <summary>What a float hunt looked through and what it found.</summary>
 /// <param name="RegionsWalked">How many regions were read.</param>
 /// <param name="BytesScanned">How many bytes.</param>
-/// <param name="Sightings">Every place a needle was found, at most <see cref="FloatHunt.MostPerNeedle"/> a needle.</param>
+/// <param name="Sightings">Every place a needle was found, at most <see cref="FloatHunt.Most"/> of it a needle.</param>
 /// <param name="Capped">The needles found more often than that - the count is then a floor.</param>
 /// <param name="Unsearched">The needles that could not be looked for: nothing in them but nought, one and blanks.</param>
 /// <param name="Truncated">True when the byte budget stopped it before the last region.</param>
@@ -135,7 +139,7 @@ public sealed record FloatHuntResult(
 /// </remarks>
 public static class FloatHunt
 {
-    /// <summary>Most places kept for one needle; past it the needle is reported as capped.</summary>
+    /// <summary>Most places kept for one needle that does not say (<see cref="FloatNeedle.Most"/>); past it the needle is reported as capped.</summary>
     public const int MostPerNeedle = 64;
 
     /// <summary>The longest needle, in floats - a 4 by 4 matrix.</summary>
@@ -420,7 +424,7 @@ public static class FloatHunt
                 continue;
             }
 
-            if (found[one.Needle] >= MostPerNeedle)
+            if (found[one.Needle] >= Most(needle))
             {
                 capped.Add(one.Needle);
                 continue;
@@ -429,6 +433,13 @@ public static class FloatHunt
             found[one.Needle]++;
             into.Add(new FloatSighting(at + (ulong)(start * sizeof(float)), one.Needle));
         }
+    }
+
+    /// <summary>How many of a needle's places are kept: its own <see cref="FloatNeedle.Most"/>, else <see cref="MostPerNeedle"/>.</summary>
+    public static int Most(FloatNeedle needle)
+    {
+        ArgumentNullException.ThrowIfNull(needle);
+        return needle.Most > 0 ? needle.Most : MostPerNeedle;
     }
 
     private static bool Matches(ReadOnlySpan<float> floats, FloatNeedle needle)
@@ -654,7 +665,7 @@ public static class FloatHunt
             var sightings = new List<FloatSighting>(all.Count);
             foreach ((_, FloatSighting place) in all)
             {
-                if (found[place.Needle] >= MostPerNeedle)
+                if (found[place.Needle] >= Most(needles[place.Needle]))
                 {
                     capped.Add(place.Needle);
                     continue;

@@ -23,11 +23,23 @@ public sealed class BoneWatchSeries
     /// <summary>The file the reads are kept in beside the part's text.</summary>
     public const string File = "bone-watch.bin";
 
-    /// <summary>The first bytes of the file, its version in the last: 2 from v0.1.404, whose skeletons and the player's place follow the blocks.</summary>
-    private static readonly byte[] Magic = "POEFBONES2"u8.ToArray();
+    /// <summary>
+    /// The first bytes of the file, its version in the last: 3 from v0.1.407, whose pieces' places in the world, the world skeletons' places
+    /// and the candidates in the world follow the skeletons.
+    /// </summary>
+    private static readonly byte[] Magic = "POEFBONES3"u8.ToArray();
+
+    /// <summary>The first bytes of a file of v0.1.404 - the skeletons and the player's place after the blocks.</summary>
+    private static readonly byte[] MagicTwo = "POEFBONES2"u8.ToArray();
 
     /// <summary>The first bytes of a file of v0.1.401 to v0.1.403 - the blocks alone.</summary>
     private static readonly byte[] MagicOne = "POEFBONES1"u8.ToArray();
+
+    /// <summary>Most candidates in the world written one by one - the rest counted. CHOSEN.</summary>
+    private const int MostCandidateLines = 120;
+
+    /// <summary>A candidate's least swing, in degrees from its least to its most, to count as swinging - CHOSEN.</summary>
+    private const float LeastSwing = 1f;
 
     /// <summary>The most columns of swings a skeleton's table writes.</summary>
     private const int MostSwingColumns = 8;
@@ -60,7 +72,26 @@ public sealed class BoneWatchSeries
     /// <param name="Matched">How many fixed bones stood at their rest when it was found.</param>
     /// <param name="Fixed">How many bones hold their rest in its frame.</param>
     /// <param name="Votes">How many bones' places found in the sweep agreed on it.</param>
-    public sealed record Skeleton(int Block, PoseRig Rig, PoseFrame Frame, PoseLayout Layout, int Stride, int Offset, int Matched, int Fixed, int Votes);
+    public sealed record Skeleton(int Block, PoseRig Rig, PoseFrame Frame, PoseLayout Layout, int Stride, int Offset, int Matched, int Fixed, int Votes)
+    {
+        /// <summary>For a skeleton in the world, its piece's place by its index among <see cref="Places"/> - -1 for the other frames.</summary>
+        public int Place { get; init; } = -1;
+    }
+
+    /// <summary>A piece's place in the world watched as a block: its World matrix by rows (PiecePlacement.World) at an offset in the block, and the piece's own rig.</summary>
+    /// <param name="Block">The block it was read as.</param>
+    /// <param name="Offset">Where the matrix lies in the block.</param>
+    /// <param name="Rig">The piece's own rig - what its places in the world are set against.</param>
+    public sealed record Place(int Block, int Offset, PoseRig Rig);
+
+    /// <summary>A place near a piece in the world (PoseWorld) watched as a block: where its x lies, how x, y and z lie, its piece and the bone it was taken for.</summary>
+    /// <param name="Block">The block it was read as.</param>
+    /// <param name="Offset">Where its x lies in the block.</param>
+    /// <param name="Layout">How its x, y and z lie.</param>
+    /// <param name="Place">Its piece, by its index among <see cref="Places"/>.</param>
+    /// <param name="Bone">The simulated bone it was taken for, or the fixed bone at whose rest it stood.</param>
+    /// <param name="Parent">That simulated bone's nearest fixed ancestor - -1 for a fixed bone's rest.</param>
+    public sealed record Candidate(int Block, int Offset, PoseLayout Layout, int Place, int Bone, int Parent);
 
     /// <summary>The blocks, in the order they were watched.</summary>
     public IReadOnlyList<Block> Blocks { get; }
@@ -74,11 +105,25 @@ public sealed class BoneWatchSeries
     /// <summary>The block holding the player's place (Render.CurrentWorldPosition, x, y and z), -1 for none.</summary>
     public int Player { get; }
 
+    /// <summary>The pieces' places in the world watched - none in a file before v0.1.407.</summary>
+    public IReadOnlyList<Place> Places { get; }
+
+    /// <summary>The places near the pieces in the world watched - none in a file before v0.1.407.</summary>
+    public IReadOnlyList<Candidate> Candidates { get; }
+
     /// <param name="blocks">The blocks watched.</param>
     /// <param name="head">What the watch said of itself.</param>
     /// <param name="skeletons">The skeletons found by their rest among the blocks.</param>
     /// <param name="player">The block of the player's place, -1 for none.</param>
-    public BoneWatchSeries(IReadOnlyList<Block> blocks, IReadOnlyList<string> head, IReadOnlyList<Skeleton>? skeletons = null, int player = -1)
+    /// <param name="places">The pieces' places in the world among the blocks.</param>
+    /// <param name="candidates">The places near them in the world among the blocks.</param>
+    public BoneWatchSeries(
+        IReadOnlyList<Block> blocks,
+        IReadOnlyList<string> head,
+        IReadOnlyList<Skeleton>? skeletons = null,
+        int player = -1,
+        IReadOnlyList<Place>? places = null,
+        IReadOnlyList<Candidate>? candidates = null)
     {
         ArgumentNullException.ThrowIfNull(blocks);
         ArgumentNullException.ThrowIfNull(head);
@@ -86,11 +131,14 @@ public sealed class BoneWatchSeries
         Head = head;
         Skeletons = skeletons ?? [];
         Player = player >= 0 && player < blocks.Count ? player : -1;
+        Places = places ?? [];
+        Candidates = candidates ?? [];
     }
 
     /// <summary>
     /// The reads as bytes: the magic, the head's lines, then each block's name, address, size and reads; then the player's block and each
-    /// skeleton - its block, its rig whole (piece, file, each bone's name, parent and both rests) and how it lies.
+    /// skeleton - its block, its rig whole (piece, file, each bone's name, parent and both rests) and how it lies; then each piece's place in
+    /// the world (its block, the matrix's offset, its rig whole), each skeleton's place, and each candidate in the world.
     /// </summary>
     public byte[] ToBytes()
     {
@@ -123,18 +171,7 @@ public sealed class BoneWatchSeries
             foreach (Skeleton skeleton in Skeletons)
             {
                 write.Write(skeleton.Block);
-                PoseRig rig = skeleton.Rig;
-                write.Write(rig.Piece);
-                write.Write(rig.Path);
-                write.Write(rig.Count);
-                for (var bone = 0; bone < rig.Count; bone++)
-                {
-                    write.Write(rig.Names[bone]);
-                    write.Write(rig.Parents[bone]);
-                    Matrix(write, rig.Local[bone]);
-                    Matrix(write, rig.Model[bone]);
-                }
-
+                Rig(write, skeleton.Rig);
                 write.Write((int)skeleton.Frame);
                 write.Write((int)skeleton.Layout);
                 write.Write(skeleton.Stride);
@@ -143,17 +180,84 @@ public sealed class BoneWatchSeries
                 write.Write(skeleton.Fixed);
                 write.Write(skeleton.Votes);
             }
+
+            write.Write(Places.Count);
+            foreach (Place place in Places)
+            {
+                write.Write(place.Block);
+                write.Write(place.Offset);
+                Rig(write, place.Rig);
+            }
+
+            foreach (Skeleton skeleton in Skeletons)
+            {
+                write.Write(skeleton.Place);
+            }
+
+            write.Write(Candidates.Count);
+            foreach (Candidate candidate in Candidates)
+            {
+                write.Write(candidate.Block);
+                write.Write(candidate.Offset);
+                write.Write((int)candidate.Layout);
+                write.Write(candidate.Place);
+                write.Write(candidate.Bone);
+                write.Write(candidate.Parent);
+            }
         }
 
         return stream.ToArray();
     }
 
-    /// <summary>The reads back from <see cref="ToBytes"/>'s bytes - or a file of v0.1.401 to v0.1.403's, its blocks alone - or null where they are not such a file.</summary>
+    private static void Rig(BinaryWriter write, PoseRig rig)
+    {
+        write.Write(rig.Piece);
+        write.Write(rig.Path);
+        write.Write(rig.Count);
+        for (var bone = 0; bone < rig.Count; bone++)
+        {
+            write.Write(rig.Names[bone]);
+            write.Write(rig.Parents[bone]);
+            Matrix(write, rig.Local[bone]);
+            Matrix(write, rig.Model[bone]);
+        }
+    }
+
+    /// <summary>A rig back as <see cref="Rig(BinaryWriter, PoseRig)"/> wrote it - null where its bones' count is not one.</summary>
+    private static PoseRig? Rig(BinaryReader read)
+    {
+        string piece = read.ReadString(), path = read.ReadString();
+        int bones = read.ReadInt32();
+        if (bones is < 0 or > 1024)
+        {
+            return null;
+        }
+
+        var names = new string[bones];
+        var parents = new int[bones];
+        var local = new Matrix4x4[bones];
+        var model = new Matrix4x4[bones];
+        for (var bone = 0; bone < bones; bone++)
+        {
+            names[bone] = read.ReadString();
+            parents[bone] = read.ReadInt32();
+            local[bone] = Matrix(read);
+            model[bone] = Matrix(read);
+        }
+
+        return new PoseRig(piece, path, names, parents, local, model);
+    }
+
+    /// <summary>
+    /// The reads back from <see cref="ToBytes"/>'s bytes - or a file of v0.1.404's, without the world, or of v0.1.401 to v0.1.403's, its
+    /// blocks alone - or null where they are not such a file.
+    /// </summary>
     public static BoneWatchSeries? Read(byte[] bytes)
     {
         ArgumentNullException.ThrowIfNull(bytes);
-        bool two = bytes.Length >= Magic.Length && bytes.AsSpan(0, Magic.Length).SequenceEqual(Magic);
-        if (!two && !(bytes.Length >= MagicOne.Length && bytes.AsSpan(0, MagicOne.Length).SequenceEqual(MagicOne)))
+        bool Starts(byte[] magic) => bytes.Length >= magic.Length && bytes.AsSpan(0, magic.Length).SequenceEqual(magic);
+        int version = Starts(Magic) ? 3 : Starts(MagicTwo) ? 2 : Starts(MagicOne) ? 1 : 0;
+        if (version == 0)
         {
             return null;
         }
@@ -191,7 +295,7 @@ public sealed class BoneWatchSeries
                 blocks.Add(new Block(name, address, size, taken));
             }
 
-            if (!two)
+            if (version == 1)
             {
                 return new BoneWatchSeries(blocks, head);
             }
@@ -202,31 +306,52 @@ public sealed class BoneWatchSeries
             for (var one = 0; one < skeletons; one++)
             {
                 int block = read.ReadInt32();
-                string piece = read.ReadString(), path = read.ReadString();
-                int bones = read.ReadInt32();
-                if (bones is < 0 or > 1024 || block < 0 || block >= blocks.Count)
+                if (Rig(read) is not { } rig || block < 0 || block >= blocks.Count)
                 {
                     return null;
                 }
 
-                var names = new string[bones];
-                var parents = new int[bones];
-                var local = new Matrix4x4[bones];
-                var model = new Matrix4x4[bones];
-                for (var bone = 0; bone < bones; bone++)
-                {
-                    names[bone] = read.ReadString();
-                    parents[bone] = read.ReadInt32();
-                    local[bone] = Matrix(read);
-                    model[bone] = Matrix(read);
-                }
-
-                var rig = new PoseRig(piece, path, names, parents, local, model);
                 found.Add(new Skeleton(
                     block, rig, (PoseFrame)read.ReadInt32(), (PoseLayout)read.ReadInt32(), read.ReadInt32(), read.ReadInt32(), read.ReadInt32(), read.ReadInt32(), read.ReadInt32()));
             }
 
-            return new BoneWatchSeries(blocks, head, found, player);
+            if (version == 2)
+            {
+                return new BoneWatchSeries(blocks, head, found, player);
+            }
+
+            int count2 = read.ReadInt32();
+            var places = new List<Place>(Math.Clamp(count2, 0, 64));
+            for (var one = 0; one < count2; one++)
+            {
+                int block = read.ReadInt32(), offset = read.ReadInt32();
+                if (Rig(read) is not { } rig || block < 0 || block >= blocks.Count)
+                {
+                    return null;
+                }
+
+                places.Add(new Place(block, offset, rig));
+            }
+
+            for (var one = 0; one < found.Count; one++)
+            {
+                found[one] = found[one] with { Place = read.ReadInt32() };
+            }
+
+            int count3 = read.ReadInt32();
+            var candidates = new List<Candidate>(Math.Clamp(count3, 0, 4096));
+            for (var one = 0; one < count3; one++)
+            {
+                var candidate = new Candidate(read.ReadInt32(), read.ReadInt32(), (PoseLayout)read.ReadInt32(), read.ReadInt32(), read.ReadInt32(), read.ReadInt32());
+                if (candidate.Block < 0 || candidate.Block >= blocks.Count || candidate.Place < 0 || candidate.Place >= places.Count)
+                {
+                    return null;
+                }
+
+                candidates.Add(candidate);
+            }
+
+            return new BoneWatchSeries(blocks, head, found, player, places, candidates);
         }
         catch (EndOfStreamException)
         {
@@ -390,10 +515,11 @@ public sealed class BoneWatchSeries
     {
         var lines = new List<string>(Head);
         SkeletonLines(lines);
+        CandidateLines(lines);
         lines.Add(string.Empty);
         lines.Add("=== the runs of turn matrices in the watched blocks - a skeleton's bones side by side - each matrix against the run's first: how far it turns on it over the watch and how often; a held weapon's own bones hold still on its root, a simulated bone (phys_) does not");
         int found = 0;
-        HashSet<int> skeletal = [.. Skeletons.Select(one => one.Block)];
+        HashSet<int> skeletal = [.. Skeletons.Select(one => one.Block), .. Places.Select(one => one.Block), .. Candidates.Select(one => one.Block)];
         for (var index = 0; index < Blocks.Count; index++)
         {
             Block block = Blocks[index];
@@ -441,9 +567,7 @@ public sealed class BoneWatchSeries
             return;
         }
 
-        (double At, Vector3 Place)[] player = Player >= 0
-            ? [.. Blocks[Player].Reads.Where(one => one.Bytes.Length >= 12).Select(one => (one.At, Row(one.Bytes, 0)))]
-            : [];
+        (double At, Vector3 Place)[] player = PlayerReads();
         for (var index = 0; index < Skeletons.Count; index++)
         {
             Skeleton skeleton = Skeletons[index];
@@ -460,13 +584,32 @@ public sealed class BoneWatchSeries
                 continue;
             }
 
+            // IN THE WORLD, taken into the piece's frame by its World read with it at each sweep, and read there by places alone.
+            if (skeleton.Frame == PoseFrame.World)
+            {
+                if (skeleton.Place < 0 || skeleton.Place >= Places.Count || InFrame(block, skeleton) is not { } framed)
+                {
+                    lines.Add("  (its piece's World was not watched - not taken into the piece's frame)");
+                    continue;
+                }
+
+                lines.Add("  taken into the piece's frame by its placement's World, read with it at each sweep - and read there by places alone");
+                (block, skeleton) = framed;
+            }
+
             TurnRead how = PoseSwing.Turns(block, skeleton);
             lines.Add(how.Kind == TurnKind.None
                 ? "  turns: none found beside the translations - measured by places alone"
                 : string.Create(
                     CultureInfo.InvariantCulture,
                     $"  turns: {how.Kind}{(how.Flip ? ", read the other way round (by columns, or conjugated)" : string.Empty)}{(how.WFirst ? ", w first" : string.Empty)} - held in {how.Share:P0} of the bones' reads; the fixed bones' turns {how.Agreement:0.##} degrees from their rest at the first read (median)"));
-            MovedLines(block, skeleton, how, lines);
+
+            // A COPY OF THE REST IS SAID SO AND LEFT: twenty such skeletons set out bone by bone, every swing nought, were five thousand lines of
+            // the 04:49 capture's report.
+            if (MovedLines(block, skeleton, how, lines) == 0)
+            {
+                continue;
+            }
 
             IReadOnlyList<BoneSwing> swings = PoseSwing.Swings(block, skeleton, how);
             foreach (BoneSwing swing in swings)
@@ -478,8 +621,215 @@ public sealed class BoneWatchSeries
         }
     }
 
-    /// <summary>Which bones moved over the watch: each whose translation or turn left its first read's, by how much at most.</summary>
-    private static void MovedLines(Block block, Skeleton skeleton, TurnRead how, List<string> lines)
+    /// <summary>The player's place at each of its reads, where it was watched.</summary>
+    private (double At, Vector3 Place)[] PlayerReads() => Player >= 0
+        ? [.. Blocks[Player].Reads.Where(one => one.Bytes.Length >= 12).Select(one => (one.At, Row(one.Bytes, 0)))]
+        : [];
+
+    /// <summary>
+    /// Each read's World of a piece's place - the read of its block nearest in time, which a sweep reads within the same moment - as a turn
+    /// back into the piece's frame; null where the place was not read.
+    /// </summary>
+    private Matrix4x4?[] Backs(Place place, Block block)
+    {
+        Block world = Blocks[place.Block];
+        var backs = new Matrix4x4?[block.Reads.Count];
+        int at = 0;
+        for (var read = 0; read < block.Reads.Count && world.Reads.Count > 0; read++)
+        {
+            double time = block.Reads[read].At;
+            while (at + 1 < world.Reads.Count && Math.Abs(world.Reads[at + 1].At - time) <= Math.Abs(world.Reads[at].At - time))
+            {
+                at++;
+            }
+
+            byte[] bytes = world.Reads[at].Bytes;
+            if (place.Offset + 64 <= bytes.Length && Matrix4x4.Invert(PoseWorld.Read(bytes, place.Offset), out Matrix4x4 back))
+            {
+                backs[read] = back;
+            }
+        }
+
+        return backs;
+    }
+
+    /// <summary>
+    /// A skeleton in the world as one in its piece's frame: each read's bones taken back through the World read with it, packed twelve bytes
+    /// a bone - the reads whose World was not read left out.
+    /// </summary>
+    private (Block Block, Skeleton Skeleton)? InFrame(Block block, Skeleton skeleton)
+    {
+        Place place = Places[skeleton.Place];
+        Matrix4x4?[] backs = Backs(place, block);
+        PoseRig rig = skeleton.Rig;
+        var framed = new Block(block.Name + ", in its piece's frame", block.Address, rig.Count * 12, []);
+        for (var read = 0; read < block.Reads.Count; read++)
+        {
+            if (backs[read] is not { } back)
+            {
+                continue;
+            }
+
+            byte[] bytes = block.Reads[read].Bytes, into = new byte[rig.Count * 12];
+            for (var bone = 0; bone < rig.Count; bone++)
+            {
+                int x = skeleton.Offset + (bone * skeleton.Stride);
+                Vector3 at = x + PoseHunt.Span(skeleton.Layout) <= bytes.Length ? Vector3.Transform(PoseHunt.At(bytes, x, skeleton.Layout), back) : new Vector3(float.NaN);
+                BitConverter.TryWriteBytes(into.AsSpan(bone * 12, 4), at.X);
+                BitConverter.TryWriteBytes(into.AsSpan((bone * 12) + 4, 4), at.Y);
+                BitConverter.TryWriteBytes(into.AsSpan((bone * 12) + 8, 4), at.Z);
+            }
+
+            framed.Reads.Add((block.Reads[read].At, into));
+        }
+
+        return framed.Reads.Count == 0 ? null : (framed, skeleton with { Block = -1, Frame = PoseFrame.Model, Layout = PoseLayout.Packed, Stride = 12, Offset = 0, Place = -1 });
+    }
+
+    /// <summary>
+    /// The places near the pieces in the world (PoseWorld): each taken into its piece's frame by the World read with it at every sweep -
+    /// where it stood against its bone, how far it moved there and in the world, and, for one taken for a simulated bone, its swing on that
+    /// bone's fixed ancestor - those swinging first, the most first, with a table of the swingers over time beside the player's speed.
+    /// </summary>
+    private void CandidateLines(List<string> lines)
+    {
+        lines.Add(string.Empty);
+        lines.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"=== the places near the pieces in the world (PoseWorld, v0.1.407): three floats near a piece, taken into its frame by its placement's World read with them at each sweep - one standing from a simulated bone's nearest fixed ancestor at that bone's rest distance, or at a fixed bone's rest. In the piece's frame a fixed bone's live copy holds still while the world moves it; a simulated bone's state swings on its ancestor at its length - a pendulum's way, measured as the skeletons' are. Swinging means {LeastSwing} degree or more from least to most at a steady length (0.9 to 1.1 of its rest's)."));
+        if (Candidates.Count == 0)
+        {
+            lines.Add(Places.Count == 0 ? "(no piece's place in the world was watched)" : "(no place near a piece was kept)");
+            return;
+        }
+
+        var read = new List<(Candidate Candidate, string Line, BoneSwing? Swing, float Moved)>();
+        foreach (Candidate candidate in Candidates)
+        {
+            read.Add(Candidate1(candidate));
+        }
+
+        bool Swings((Candidate Candidate, string Line, BoneSwing? Swing, float Moved) one)
+            => one.Swing is { } swing && swing.Signed.Length > 0 && swing.Signed.Max() - swing.Signed.Min() >= LeastSwing && swing.LeastRatio >= 0.9f && swing.MostRatio <= 1.1f;
+
+        var ranked = read
+            .OrderByDescending(Swings)
+            .ThenByDescending(one => one.Swing is { Signed.Length: > 0 } swing ? swing.Signed.Max() - swing.Signed.Min() : 0f)
+            .ThenByDescending(one => one.Moved)
+            .ToList();
+        int swinging = ranked.Count(Swings);
+        lines.Add(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Candidates.Count} places watched: {Candidates.Count(one => one.Parent >= 0)} taken for a simulated bone, {swinging} of them swinging; {Candidates.Count(one => one.Parent < 0)} at a fixed bone's rest"));
+        foreach ((Candidate candidate, string line, BoneSwing? swing, _) in ranked.Take(MostCandidateLines))
+        {
+            lines.Add(line);
+            if (swing is not null && Swings((candidate, line, swing, 0)))
+            {
+                SwingLines(swing, lines);
+            }
+        }
+
+        if (ranked.Count > MostCandidateLines)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture, $"  ({ranked.Count - MostCandidateLines} more not written - none of them swinging)"));
+        }
+
+        // THE SWINGERS OVER TIME, as a skeleton's table.
+        BoneSwing[] shown = [.. ranked.Where(Swings).Select(one => one.Swing!).Take(MostSwingColumns)];
+        Block? first = ranked.Where(Swings).Select(one => Blocks[one.Candidate.Block]).FirstOrDefault();
+        if (shown.Length > 0 && first is not null)
+        {
+            lines.Add("  the swinging places over time:");
+            SwingTable(first, shown, PlayerReads(), lines);
+        }
+    }
+
+    /// <summary>One candidate read over the watch: its line, its swing where it was taken for a simulated bone, and how far it moved in the world.</summary>
+    private (Candidate Candidate, string Line, BoneSwing? Swing, float Moved) Candidate1(Candidate candidate)
+    {
+        Place place = Places[candidate.Place];
+        PoseRig rig = place.Rig;
+        Block block = Blocks[candidate.Block];
+        Matrix4x4?[] backs = Backs(place, block);
+        var times = new List<double>();
+        var world = new List<Vector3>();
+        var framed = new List<Vector3>();
+        for (var read = 0; read < block.Reads.Count; read++)
+        {
+            byte[] bytes = block.Reads[read].Bytes;
+            if (backs[read] is not { } back || candidate.Offset < 0 || candidate.Offset + PoseHunt.Span(candidate.Layout) > bytes.Length)
+            {
+                continue;
+            }
+
+            Vector3 at = PoseHunt.At(bytes, candidate.Offset, candidate.Layout);
+            times.Add(block.Reads[read].At);
+            world.Add(at);
+            framed.Add(Vector3.Transform(at, back));
+        }
+
+        string name = candidate.Bone >= 0 && candidate.Bone < rig.Count ? rig.Names[candidate.Bone] : "?";
+        string head = string.Create(
+            CultureInfo.InvariantCulture,
+            $"  0x{block.Address + (ulong)candidate.Offset:X} {(candidate.Layout == PoseLayout.Packed ? "side by side" : "16 bytes apart")}, {Path.GetFileName(rig.Piece)}");
+        if (framed.Count == 0)
+        {
+            return (candidate, head + ": not read with its piece's World", null, 0f);
+        }
+
+        float moved = world.Max(one => Vector3.Distance(one, world[0]));
+        float wandered = framed.Max(one => Vector3.Distance(one, framed[0]));
+        string beside = Beside(block, candidate);
+        if (candidate.Parent < 0 || candidate.Parent >= rig.Count || candidate.Bone < 0 || candidate.Bone >= rig.Count)
+        {
+            // A FIXED BONE'S REST: how near it stays in the piece's frame while the world moves it.
+            Vector3 rest = candidate.Bone >= 0 && candidate.Bone < rig.Count ? rig.Model[candidate.Bone].Translation : Vector3.Zero;
+            float least = framed.Min(one => Vector3.Distance(one, rest)), most = framed.Max(one => Vector3.Distance(one, rest));
+            return (candidate, head + string.Create(
+                CultureInfo.InvariantCulture,
+                $": at {name}'s rest - {least:0.###}..{most:0.###} from it in the piece's frame, moved {moved:0.##} in the world and {wandered:0.##} in the piece's frame over {times[^1] - times[0]:0.0} s; {beside}"), null, moved);
+        }
+
+        // A SIMULATED BONE'S STATE: its way from its fixed ancestor against the rest's, as a pendulum's.
+        Vector3 from = rig.Model[candidate.Parent].Translation, restWay = rig.Model[candidate.Bone].Translation - from;
+        var vectors = new Vector3[framed.Count];
+        var ratios = new float[framed.Count];
+        for (var read = 0; read < framed.Count; read++)
+        {
+            Vector3 way = framed[read] - from;
+            vectors[read] = PoseSwing.Between(restWay, way);
+            ratios[read] = way.Length() / restWay.Length();
+        }
+
+        BoneSwing swing = PoseSwing.Measure(name, rig.Names[candidate.Parent], "place in the world", [.. times], vectors, restWay.Length(), ratios);
+        return (candidate, head + string.Create(
+            CultureInfo.InvariantCulture,
+            $": taken for {name} on {rig.Names[candidate.Parent]} - its distance {ratios.Min():0.###}..{ratios.Max():0.###} of the rest's {restWay.Length():0.##}, {vectors.Min(one => one.Length()):0.#}..{vectors.Max(one => one.Length()):0.#} degrees from the rest's way, moved {moved:0.##} in the world and {wandered:0.##} in the piece's frame over {times[^1] - times[0]:0.0} s; {beside}"), swing, moved);
+    }
+
+    /// <summary>The floats round a candidate at its first read - four before its x and seven from it - for what the engine keeps beside it.</summary>
+    private static string Beside(Block block, Candidate candidate)
+    {
+        if (block.Reads.Count == 0)
+        {
+            return "nothing read";
+        }
+
+        byte[] bytes = block.Reads[0].Bytes;
+        var floats = new List<string>();
+        for (int at = candidate.Offset - 16; at < candidate.Offset + 28; at += 4)
+        {
+            floats.Add(at >= 0 && at + 4 <= bytes.Length
+                ? (at == candidate.Offset ? "[" : string.Empty) + BitConverter.ToSingle(bytes, at).ToString("G6", CultureInfo.InvariantCulture)
+                : "-");
+        }
+
+        return "beside it: " + string.Join(' ', floats);
+    }
+
+    /// <summary>Which bones moved over the watch: each whose translation or turn left its first read's, by how much at most - and how many.</summary>
+    private static int MovedLines(Block block, Skeleton skeleton, TurnRead how, List<string> lines)
     {
         PoseRig rig = skeleton.Rig;
         byte[] first = block.Reads[0].Bytes;
@@ -507,14 +857,15 @@ public sealed class BoneWatchSeries
 
         lines.Add(string.Create(
             CultureInfo.InvariantCulture,
-            $"  moved over the watch: {moved.Count} of {rig.Count} bones{(moved.Count == 0 ? " - a copy of the rest, or a pose that held still" : ": " + string.Join(", ", moved.Take(40)) + (moved.Count > 40 ? $" and {moved.Count - 40} more" : string.Empty))}"));
+            $"  moved over the watch: {moved.Count} of {rig.Count} bones{(moved.Count == 0 ? " - a copy of the rest, or a pose that held still: its bones are not set out one by one" : ": " + string.Join(", ", moved.Take(40)) + (moved.Count > 40 ? $" and {moved.Count - 40} more" : string.Empty))}"));
+        return moved.Count;
     }
 
     /// <summary>One simulated bone's swing in words: how far, about which axis, how often, how it settles - and its turning points.</summary>
     private static void SwingLines(BoneSwing swing, List<string> lines)
     {
         float least = swing.Signed.Length > 0 ? swing.Signed.Min() : 0, most = swing.Signed.Length > 0 ? swing.Signed.Max() : 0;
-        string rest = swing.By == "place"
+        string rest = swing.RestLength > 0
             ? string.Create(CultureInfo.InvariantCulture, $"rests {swing.RestLength:0.###} from it, its distance {swing.LeastRatio:0.####}..{swing.MostRatio:0.####} of that; ")
             : string.Empty;
         lines.Add(string.Create(
@@ -550,7 +901,7 @@ public sealed class BoneWatchSeries
             string speed = Speed(player, at) is { } fast ? fast.ToString("0", CultureInfo.InvariantCulture) : "-";
             lines.Add(string.Join(
                 '\t',
-                shown.Select(one => one.Signed[read].ToString("0.###", CultureInfo.InvariantCulture))
+                shown.Select(one => read < one.Signed.Length ? one.Signed[read].ToString("0.###", CultureInfo.InvariantCulture) : "-")
                     .Prepend(speed)
                     .Prepend("  " + (at - block.Reads[0].At).ToString("0.000", CultureInfo.InvariantCulture))));
         }

@@ -1,11 +1,15 @@
 using System.Runtime.Versioning;
 
-namespace PoEformance.App;
+namespace PoEformance.Overlay;
 
 /// <summary>
-/// Plays the audible cue a rule asked for, without holding up the read that asked.
+/// Plays the audible cue a rule asked for - or the capture's window, as a part asks the person at the game to act - without holding up the
+/// thread that asked.
 /// </summary>
 /// <remarks>
+/// IN THE OVERLAY FROM v0.1.407, where the capture's window rings it as a part's banner turns (CaptureProgress); the rules ring it from the
+/// application above, as before.
+///
 /// <c>Console.Beep</c> BLOCKS for the whole duration it is given. The rule engine runs on the
 /// reader thread, which produces a snapshot roughly every 33 ms, so a 120 ms cue played inline
 /// would stall four reads - the overlay's markers would visibly stutter every time a rule made

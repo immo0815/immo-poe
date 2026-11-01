@@ -673,12 +673,13 @@ public static class CaptureParts
         new(BoneWatch, "Memory", "bone watch", CaptureReport.BoneWatchFile,
             "The bones of the pieces the game draws your character with, watched for twelve seconds - for how the engine swings what "
             + "hangs on a physics bone (a lantern on a staff, a skirt, feathers). First each piece's own skeleton - and those of the pieces "
-            + "it hangs off itself - is looked for in the whole of memory by its rest as the files hold it, every core for some seconds; "
-            + "then the skeletons found, his place and every block of memory round each piece's object (three hops deep, those that change "
-            + "in the first second) are read thirty times a second. Each simulated (phys_) bone's swing on its parent is written - how far, "
-            + "about which axis, its period, its turning points and how fast it settles - as a table beside your speed, and every run of "
-            + "turn matrices in the blocks matrix by matrix. The reads go beside it as bone-watch.bin. PRESS THE KEY, and when the window "
-            + "says 'walk, stop and turn', WALK, STOP AND TURN a few times until it says it is done."),
+            + "it hangs off itself - is looked for by its rest as the files hold it, and every piece with a physics bone in the world round "
+            + "its placement, in the memory the game writes on every core for some seconds; then the skeletons and places found, his place "
+            + "and every block of memory round each piece's object (three hops deep, those that change in the first second) are read "
+            + "thirty times a second. Each simulated (phys_) bone's swing on its parent is written - how far, about which axis, its period, "
+            + "its turning points and how fast it settles - as a table beside your speed, and every run of turn matrices in the blocks "
+            + "matrix by matrix. The reads go beside it as bone-watch.bin. PRESS THE KEY AND STAND STILL while the window's banner is amber; "
+            + "at the high tone it turns green - WALK, STOP AND TURN a few times until the low tone."),
         new(ShaderStages, "Memory", "shader stages", CaptureReport.ShaderStagesFile,
             "The order the engine runs a material's shader stages in, read off its own table in the running program - an array of "
             + "std::string in its image, of which only the pixel side's ten were ever seen - written whole, beside this build's compile "
