@@ -19,7 +19,8 @@ namespace PoEformance.Overlay;
 public sealed class CardPictures : IDisposable
 {
     /// <summary>
-    /// The folder beside the tool that materials' compiled shaders are kept in - see ProgramShaders; deleting it costs only a recompile.
+    /// The folder beside the tool that compiled shaders are kept in - the materials' (ProgramShaders) and the fixed ones (ModelGpu.Warm);
+    /// deleting it costs only a recompile.
     /// </summary>
     public const string ShaderFolder = "shader-cache";
 
@@ -43,6 +44,9 @@ public sealed class CardPictures : IDisposable
         _device = device;
         _show = show;
         _hide = hide;
+
+        // THE FIXED SHADERS COMPILED BEHIND THE FRAME FROM THE START, so the first pane drawn on the card does not wait 6 s for them - see ModelGpu.Warm.
+        ModelGpu.Warm(Path.Combine(AppContext.BaseDirectory, ShaderFolder));
     }
 
     /// <summary>Whether the card reads textures anisotropically - what the settings keep as <c>modelCardSharp</c>. See ModelScene.Sharp.</summary>

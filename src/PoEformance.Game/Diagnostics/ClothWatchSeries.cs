@@ -81,6 +81,9 @@ public sealed class ClothWatchSeries
 
         /// <summary>The capsules round the player: their count (int), then <see cref="ShapeBytes"/> each.</summary>
         Capsules = 4,
+
+        /// <summary>The player's place (Render.CurrentWorldPosition), three floats - when he walks and when he stands.</summary>
+        Player = 5,
     }
 
     /// <summary>A distance constraint of the world's container: its two particles (-1 where a handle is no particle's), rest, stiffness, contraction.</summary>
@@ -750,6 +753,41 @@ public sealed class ClothWatchSeries
         int shapes = Events.Count(one => one.Kind == Kind.Capsules);
         lines.Add(string.Create(CultureInfo.InvariantCulture,
             $"the capsules round the player: {Capsules.Count} of the world 0x{World:X}, {shapes} changes read"));
+        Walk(lines);
+    }
+
+    /// <summary>How the player moved over the watch: how far, how fast at most, and from when to when he moved.</summary>
+    private void Walk(List<string> lines)
+    {
+        var places = Events.Where(one => one.Kind == Kind.Player && one.Length >= 12).Select(one => (one.Time, Place: V3(Bytes(one), 0))).ToList();
+        if (places.Count == 0)
+        {
+            lines.Add("his place: not read");
+            return;
+        }
+
+        float walked = 0f, fastest = 0f;
+        double first = double.NaN, last = double.NaN;
+        for (var one = 1; one < places.Count; one++)
+        {
+            float step = Vector2.Distance(new Vector2(places[one].Place.X, places[one].Place.Y), new Vector2(places[one - 1].Place.X, places[one - 1].Place.Y));
+            double span = places[one].Time - places[one - 1].Time;
+            walked += step;
+            if (step > 0.5f)
+            {
+                first = double.IsNaN(first) ? places[one - 1].Time : first;
+                last = places[one].Time;
+                if (span > 0)
+                {
+                    fastest = MathF.Max(fastest, (float)(step / span));
+                }
+            }
+        }
+
+        lines.Add(double.IsNaN(first)
+            ? "his place: he stood still throughout"
+            : string.Create(CultureInfo.InvariantCulture,
+                $"his place: he walked {walked:0} units, moving from {first:0.00} s to {last:0.00} s, at most {fastest:0} units a second between two reads"));
     }
 
     /// <summary>Each order's fit for object <paramref name="o"/>: every step taken again from the game's state onto its targets (see <see cref="Report"/>).</summary>

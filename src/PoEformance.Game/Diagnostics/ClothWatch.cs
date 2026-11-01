@@ -174,13 +174,12 @@ public sealed class ClothWatch
 
         IReadOnlyDictionary<string, ulong> components = entities.ReadComponents(player.Address, player.Details);
         ulong render = components.GetValueOrDefault("Render");
-        byte[] where = new byte[12];
-        if (render == 0 || !_reader.TryRead(render + (ulong)_schema.Structs["Render"].OffsetOf("CurrentWorldPosition"), where))
+        ulong at = render == 0 ? 0 : render + (ulong)_schema.Structs["Render"].OffsetOf("CurrentWorldPosition");
+        if (Place(at) is not { } place)
         {
             return ["cloth watch: the player's place did not read"];
         }
 
-        var place = new Vector3(F(where, 0), F(where, 4), F(where, 8));
         var lines = new List<string>
         {
             string.Create(CultureInfo.InvariantCulture, $"cloth watch: the player {player.Path} at {Say(place)}; objects within {Reach:0} of him across the ground are watched for {_seconds:0} s"),
@@ -190,8 +189,19 @@ public sealed class ClothWatch
         Line = "looking for the cloth's physics objects";
         SortedDictionary<ulong, byte[]> found = ClothLive.Find(
             _reader, regions, [.. tools.Select(one => (one.Name, one.Rig.Settings))], _hunting, MostFound, "the search", lines);
+
+        // WHERE HE STANDS NOW, not where he stood before the search: the 14:41 capture of v0.1.425 took his place at the press, he walked while
+        // the search ran, and every object of his - read after it - stood 470 units from it and was left out.
+        if (Place(at) is { } moved)
+        {
+            lines.Add(string.Create(CultureInfo.InvariantCulture,
+                $"  after the search he stood at {Say(moved)}, {Vector2.Distance(new Vector2(moved.X, moved.Y), new Vector2(place.X, place.Y)):0} from the press"));
+            place = moved;
+        }
+
         var near = new List<(ulong Address, byte[] Head, byte[] Particles, float Nearest)>();
-        foreach ((ulong at, byte[] head) in found)
+        var far = new List<(ulong Address, int Count, float Nearest)>();
+        foreach ((ulong address, byte[] head) in found)
         {
             int count = Count(head, 0x00, ClothWatchSeries.ParticleBytes);
             if (count <= 0 || count > MostParticles)
@@ -214,12 +224,23 @@ public sealed class ClothWatch
 
             if (nearest <= Reach)
             {
-                near.Add((at, head, particles, nearest));
+                near.Add((address, head, particles, nearest));
+            }
+            else
+            {
+                far.Add((address, count, nearest));
             }
         }
 
         near = [.. near.OrderBy(one => one.Nearest).Take(MostObjects)];
         lines.Add(string.Create(CultureInfo.InvariantCulture, $"{near.Count} of {found.Count} objects within {Reach:0} of the player across the ground"));
+        if (far.Count > 0)
+        {
+            // THE OTHERS AND HOW FAR, so a watch that keeps none says why.
+            lines.Add("  the others: " + string.Join(", ", far.OrderBy(one => one.Nearest).Take(24).Select(one =>
+                string.Create(CultureInfo.InvariantCulture, $"0x{one.Address:X} ({one.Count} particles) {one.Nearest:0} away"))));
+        }
+
         if (near.Count == 0 || _stop)
         {
             return lines;
@@ -228,9 +249,9 @@ public sealed class ClothWatch
         // EACH OBJECT AS IT WAS SET UP, read once.
         Line = "reading the objects as they were set up";
         var watched = new List<Watched>();
-        foreach ((ulong at, byte[] head, byte[] particles, float nearest) in near)
+        foreach ((ulong address, byte[] head, byte[] particles, float nearest) in near)
         {
-            if (Setup(at, head, particles, nearest, lines) is { } one)
+            if (Setup(address, head, particles, nearest, lines) is { } one)
             {
                 watched.Add(one);
             }
@@ -265,6 +286,8 @@ public sealed class ClothWatch
         string note = string.Empty;
         byte[] clock = new byte[16], lastClock = new byte[16];
         bool clockRead = false;
+        byte[] his = new byte[12], lastHis = new byte[12];
+        bool hisRead = false;
         _began = Stopwatch.GetTimestamp();
         _stage = Stage.Watching;
         Line = "watching the cloth";
@@ -288,6 +311,13 @@ public sealed class ClothWatch
                 writer.Add(ClothWatchSeries.Kind.Clock, -1, now, clock);
                 clock.CopyTo(lastClock, 0);
                 clockRead = true;
+            }
+
+            if (at != 0 && _reader.TryRead(at, his) && (!hisRead || !his.AsSpan().SequenceEqual(lastHis)))
+            {
+                writer.Add(ClothWatchSeries.Kind.Player, -1, now, his);
+                his.CopyTo(lastHis, 0);
+                hisRead = true;
             }
 
             for (var o = 0; o < watched.Count; o++)
@@ -327,6 +357,13 @@ public sealed class ClothWatch
         }
 
         return lines;
+    }
+
+    /// <summary>The player's place (Render.CurrentWorldPosition) at <paramref name="at"/>, or null where it does not read.</summary>
+    private Vector3? Place(ulong at)
+    {
+        byte[] where = new byte[12];
+        return at != 0 && _reader.TryRead(at, where) ? new Vector3(F(where, 0), F(where, 4), F(where, 8)) : null;
     }
 
     /// <summary>One object as it was set up and its reads since: its particles, its container's bodies by each particle's slot.</summary>

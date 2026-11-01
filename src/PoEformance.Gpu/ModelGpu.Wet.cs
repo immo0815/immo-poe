@@ -156,22 +156,24 @@ public sealed partial class ModelGpu
         }
 
         _wetTried = true;
-        using Blob? water = Compiled.Code(ModelShaders.Wetting, "WaterWet", "ps_4_0", out why);
+
+        // FROM THE WARMING, compiled behind the frame with the fixed shaders and kept on disk - see Warm.
+        byte[]? water = FixedBytes(WetWater, _cache, out why);
         if (water is null)
         {
             _wetWhy = why;
             return false;
         }
 
-        using Blob? dried = Compiled.Code(ModelShaders.Drying, "Dried", "ps_4_0", out why);
+        byte[]? dried = FixedBytes(WetDried, _cache, out why);
         if (dried is null)
         {
             _wetWhy = why;
             return false;
         }
 
-        _wetWater = _device.CreatePixelShader(water);
-        _wetDried = _device.CreatePixelShader(dried);
+        _wetWater = Pixel(_device, water);
+        _wetDried = Pixel(_device, dried);
         var most = new BlendDescription(Blend.One, Blend.One, Blend.One, Blend.One);
         most.RenderTarget[0].BlendOperation = BlendOperation.Max;
         most.RenderTarget[0].BlendOperationAlpha = BlendOperation.Max;

@@ -219,6 +219,13 @@ landed, stopped when the model goes; a processor picture asked for meanwhile - t
 waits with a line saying how far it is, rather than decoding on the frame's thread. A capture's build lines say how many textures were
 kept as blocks and how long the unpacking took. BlockArt now reads BC2 to BC5 itself: BC2 and BC4 to Pfim's byte, BC3's alpha and BC5
 as the card rounds them (Pfim truncates; a level apart at most). `BlockArtTests`, `BlockTextureTests` and `BlockGpuTests` hold it.
+THE CARD'S FIXED SHADERS ARE COMPILED BEHIND THE FRAME FROM THE START (v0.1.426). MEASURED through the agent link (v0.1.424, the player taken
+after a restart): "first picture: drawn on the card in 6.118 s", the overlay drawing no frame for as long (overlay.log's watchdog, "stopped at:
+building the frame" - in v0.1.423 too, 6.1 s): ModelGpu compiled eleven entry points of ModelShaders' one large source one after another on
+the render thread as the card's drawing was made. Now `ModelGpu.Warm` (called as CardPictures is made) compiles them and the wetness pass's
+two on every core in a task of their own, and keeps their bytecode in `shader-cache` beside the tool by what was compiled (`fixed-<hash>.cso`,
+as ProgramShaders keeps the materials') - the first drawing waits only for what is left of it, and a start after the first compiles none. A
+wetness shader that will not compile still leaves only the wetness out.
 
 ## A staged boss against the game
 
@@ -1248,6 +1255,11 @@ taken before the slow parts start, `CaptureKey.OfferWork` with the panes). `clot
 `THEREPLAYFindsTheToolsOwnStepsAgainExactlyAndOnlyInItsOrder` holds the reading against the tool's own world. Take it with the player taken
 in the Monster Book, out of town, robe on: stand while the banner is amber, at the high tone a few steps, then stand until the low tone - the
 order of the phases and how far the port's step is from the engine's are read there before any CHOSEN rule of ClothWorld changes.
+ITS FIRST PRESS KEPT NOTHING (v0.1.425, 14:41, Cemetery of the Eternals): it took his place at the press and the objects' targets after the
+6.6 s search, and he had walked - every object of his stood 470 units from where he had been (a cloth-live capture two minutes later put the
+robe's targets 30 units from him, the targets in the same world frame as Render's place). From v0.1.426 his place is read again after the
+search, the objects left out are listed with how far they stood, and his place is kept as a change of its own (`ClothWatchSeries.Kind.Player`)
+- the reading says how far and when he walked.
 
 ## Verify against the game, not against yourself
 
