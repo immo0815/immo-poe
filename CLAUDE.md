@@ -1178,6 +1178,36 @@ WHAT EARLIER CAPTURES HOLD OF THE ROBE (09:29, Hunting Grounds, v0.1.414's bone 
 only each chain's first bone turned - by up to 65 degrees, in steps with his walking, every deeper bone at its rest on its parent - and two
 still copies (144 and 128 bytes a bone); none of its simulated state was found, its pieces hanging off the body armour (a skin with no
 rig and no placement of its own) where PoseWorld looks round a piece's placement alone.
+THE WHOLE SIMULATION IS READ AND RUN (v0.1.421; schema `PhysicsSystem`, `ClothContainer`, `ClothBody`, `ClothBoneRecord`, the cloth structs'
+new fields). Every function was RUN under a CPU emulator (Unicorn) over that program image on random inputs - the dumped code executed, its
+calls into the C runtime (acosf, expf) and the wind's lookup stood in for - and its outputs are `tests/fixtures/cloth-engine` (numbers only,
+never the image); `ClothEngineTests` holds the tool's port against them. A FRAME: the controller skins every simulation vertex's target and
+SetTargets (module+0x13AA8B0) keeps the last, sets the new and makes EVERY DISTANCE CONSTRAINT'S REST THE TARGETS' DISTANCE THIS FRAME (and
+each shock link's length, at least 1) - the cloth's lengths follow the animated mesh; the system's clock (`PhysicsSystem`) takes ONE step a
+frame of the smoothed frame time - so the lamp's measured "keep 0.98076 a tick" is its animation_force_factor 2 at 99 frames a second,
+exp(-2 x 0.0101) = 0.9800; a step is gravity as an acceleration, the drag in the particle's own frame (no triangle, no frame: it stops), the
+animation's pull, the time-corrected Verlet integration, contacts within 5 units of an ellipsoid or a capsule (spheres alone are no
+colliders; a capsule is the round cone its two spheres sweep, to 1e-5), and ten iterations - bends every third (a Newton step along the
+fold's gradient, the change measured 0.001 along it and halved up to ten times against overshoot; the fold's angle is held at a right angle),
+every distance, every contact; then shock propagation and the enclosure; then the bones, each its offset through a particle's frame (its
+triangles' angle-weighted normal, the tangent to its first triangle's next corner), an edge's, a triangle's (affine - it shears with the
+triangle) or a shape match (Apq Aqq^-1, its third row the unit cross of its first two). Ported to `ClothMath`, `ClothRig` (the engine's edge
+order, depth and parent - the parent is the NEAREST PINNED particle, not the walk's step - and the bone links) and `ClothWorld` (the clock
+and the state): distances, contacts, shapes, frames, shape matching and drag match the engine to float precision; bends within 3% of the
+move in 77 of 80 folds (the engine's own length of the way it measures along is not read), all within 30%. CHOSEN where nothing was read:
+the controller's phases' order against the system's step (their vtable's), a kinematic particle moved onto its target each step through the
+integration's own path, no wind, no heightmap or planes, a capsule surface's motion shared between its spheres'.
+THE BOOKS SWING RIGID PIECES BY IT (v0.1.422, DECIDED from the live client: rigid pieces first, then the skins). The measured pendulum
+(Pendulum, BoneSwing, BoneSwinger of v0.1.416) is gone: every rigid piece (held, a prop, hung at a bone) whose .ao carries a
+ClientAnimationController and whose mesh a simulation mesh is simulated under its own keys (MonsterModel's Swaying, ClothSettings.Of) - the
+staff's lamp, the player's cape, a weapon's chains - every bone of its own rig whose name holds "phys_" a bone appended under the socket
+(AnimationSkeleton.Swinging), a bone below one riding with it, the piece's particles' targets its socket's (the piece hangs rigidly, its rig
+not played); `ClothSwinger` steps the model's cloths once a pose by the time the clock ran on and sets each simulated bone's skin, Bind^-1 ·
+its cloth's matrix (MonsterPortrait, the light panel's "swing"); monster-files.txt writes every cloth, its bones and how each follows, and
+plays them at 99 frames a second. MEASURED against the game: the staff's lamp, its rest turned 32 degrees from down, settles 5.1 degrees from
+straight down towards its rest - the game's resting lamp stood 2 to 7.5 degrees off towards its rest's way, its rest 30 to 34 from down
+(v0.1.414's bone watch): the pull towards the animation against gravity, not a bend stiffness (`THEGAMESRestingLampTiltsAsTheClothSettlesIt`).
+NEXT: the skins on his rig (robe, hair, the body's own chest), whose phys_ bones his rig lacks; the body's spheres and capsules as colliders.
 
 ## Verify against the game, not against yourself
 

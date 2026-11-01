@@ -332,13 +332,14 @@ public static class CaptureMonsterFiles
     private const double SwingSeconds = 8;
 
     /// <summary>
-    /// The bones of his pieces the tool swings (MonsterModel.Swings, the light panel's "swing"): each rod's top and end at the bind pose in his
-    /// own frame, its length and the bone it hangs from; the measured constants; and the swing played through his opening animation from
-    /// hanging straight down, tick by tick as the pane plays it - its angle from straight down each second, and the most.
+    /// The cloths of his pieces the tool simulates (MonsterModel.Swings, the light panel's "swing"): each cloth's particles, triangles, pins,
+    /// simulation and bones with how each follows; and the cloths played through his opening animation at 99 frames a second (the engine's one
+    /// step a frame, ClothWorld) from standing on their targets - each simulated bone's distance from where the animation alone would hold it
+    /// each second, and the most.
     /// </summary>
     private static void Swung(StringBuilder body, MonsterModel actor, Func<ReadOnlyMemory<byte>, int, byte[]?> unpacking)
     {
-        body.AppendLine().Append(Invariant($"=== the bones he swings (BoneSwing, the light panel's \"swing\"): {actor.Swings.Count} - a rod from its parent's rest to its own, stepped every {Pendulum.Tick * 1000:0.#} ms, keep {Pendulum.Keep}, gravity {Pendulum.Fall:0.000000} of the rod a tick squared, the hand's acceleration a tick late times {Pendulum.Inertia} (all MEASURED)")).AppendLine();
+        body.AppendLine().Append(Invariant($"=== the bones he simulates (ClothSwing, the light panel's \"swing\"): {actor.Swings.Count} cloths, {actor.Swings.Sum(one => one.Cloth.Links.Count)} bones - the engine's cloth (ClothWorld), one step a frame")).AppendLine();
         if (actor.SwingSaid.Length > 0)
         {
             body.Append("  ").AppendLine(actor.SwingSaid);
@@ -349,19 +350,30 @@ public static class CaptureMonsterFiles
             return;
         }
 
-        body.AppendLine("  bone\tits own bone\this bone it hangs from\ttop at rest\tend at rest\tlength\tsource");
-        foreach (BoneSwing swing in actor.Swings)
+        body.AppendLine("  bone\tits own bone\tkind\tparticle, edge or triangle\this bone it hangs from\tbind place\tsource");
+        foreach (ClothSwing swing in actor.Swings)
         {
             string socket = swing.Socket >= 0 && swing.Socket < actor.Rig.Bones.Count ? actor.Rig.Bones[swing.Socket].Name : "-";
-            body.AppendLine(Invariant($"  {swing.Bone}\t{swing.Name}\t{socket}\t{At(swing.Pivot)}\t{At(swing.Rest)}\t{Vector3.Distance(swing.Pivot, swing.Rest):0.###}\t{swing.Source}"));
+            body.AppendLine(Invariant($"  cloth of {swing.Source}: {swing.Cloth.Count} particles, {swing.Cloth.Triangles.Length} triangles, {swing.Cloth.Edges.Length} edges, {swing.Cloth.Bends.Length} bends, {swing.Cloth.Pinned.Count(pin => pin)} pinned; {swing.Cloth.Settings.Say()}"));
+            foreach (ClothBoneLink link in swing.Cloth.Links)
+            {
+                string on = link.Kind switch
+                {
+                    ClothBoneKind.Particle => Invariant($"particle {link.Particle}"),
+                    ClothBoneKind.Edge => Invariant($"edge {link.Along.A}-{link.Along.B} at {link.T:0.###}"),
+                    ClothBoneKind.Triangle => Invariant($"triangle {link.Triangle}"),
+                    _ => Invariant($"{link.Members.Count} members"),
+                };
+                body.AppendLine(Invariant($"  {link.Bone}\t{link.Name}\t{link.Kind}\t{on}\t{socket}\t{At(link.Bind.Translation)}\t{swing.Source}"));
+            }
         }
 
-        // THE SWING PLAYED as the pane plays it, a pose a tick, through the animation a picture opens with.
+        // THE CLOTHS PLAYED as the pane plays them, a pose a frame, through the animation a picture opens with.
         IReadOnlyList<SkeletonAnimation> moves = actor.Rig.Animations;
         int opening = moves.Count == 0 ? -1 : Math.Max(0, moves.ToList().FindIndex(one => string.Equals(one.Name, actor.Opening.Length > 0 ? actor.Opening : "idle_01", StringComparison.Ordinal)));
-        if (opening < 0 || SkeletonPose.Of(actor.Rig) is not { } pose)
+        if (opening < 0 || SkeletonPose.Of(actor.Rig) is not { } pose || SkeletonPose.Of(actor.Rig) is not { } still)
         {
-            body.AppendLine("  (no animation to play the swing through)");
+            body.AppendLine("  (no animation to play the cloths through)");
             return;
         }
 
@@ -373,41 +385,46 @@ public static class CaptureMonsterFiles
             return;
         }
 
+        const double Frame = 0.0101;
         float rate = move.Rate > 0 ? move.Rate : 30f;
-        var swinger = new BoneSwinger(actor.Swings);
-        var most = new float[actor.Swings.Count];
+        var swinger = new ClothSwinger(actor.Swings);
+        ClothBoneLink[] links = [.. actor.Swings.SelectMany(one => one.Cloth.Links)];
+        var most = new float[links.Length];
         var line = new StringBuilder();
         float frame = 0f;
-        int ticks = (int)Math.Round(SwingSeconds / Pendulum.Tick);
-        for (var tick = 0; tick <= ticks; tick++)
+        int frames = (int)Math.Round(SwingSeconds / Frame);
+        for (var at = 0; at <= frames; at++)
         {
-            if (tick > 0)
+            if (at > 0)
             {
-                frame += (float)(Pendulum.Tick * rate);
+                frame += (float)(Frame * rate);
                 if (frame > tracks.Frames)
                 {
                     frame %= tracks.Frames;
                 }
 
-                swinger.Due(Pendulum.Tick);
+                swinger.Due(Frame);
             }
 
             pose.Take(tracks, frame);
+            still.Take(tracks, frame);
             swinger.Swing(pose, tracks, frame, rate, tracks.Frames, swinging: true);
-            for (var one = 0; one < actor.Swings.Count; one++)
+            swinger.Swing(still, tracks, frame, rate, tracks.Frames, swinging: false);
+            for (var one = 0; one < links.Length; one++)
             {
-                Vector3 rod = swinger.OffsetOf(one);
-                float angle = rod.LengthSquared() > 0f ? MathF.Acos(Math.Clamp(rod.Z / rod.Length(), -1f, 1f)) * 180f / MathF.PI : 0f;
-                most[one] = MathF.Max(most[one], angle);
-                if (tick % (int)Math.Round(1 / Pendulum.Tick) == 0)
+                Vector3 moved = Vector3.Transform(links[one].Bind.Translation, pose.Skin[links[one].Bone]);
+                Vector3 animated = Vector3.Transform(links[one].Bind.Translation, still.Skin[links[one].Bone]);
+                float gap = Vector3.Distance(moved, animated);
+                most[one] = MathF.Max(most[one], gap);
+                if (at % (int)Math.Round(1 / Frame) == 0)
                 {
-                    line.Append(Invariant($"\t{angle:0.0}"));
+                    line.Append(Invariant($"\t{gap:0.0}"));
                 }
             }
         }
 
-        body.AppendLine(Invariant($"  played through {move.Name} ({tracks.Frames:0.#} frames at {rate:0.#} a second, round) for {SwingSeconds:0} s from hanging straight down - each rod's angle from straight down each second, degrees:{line}"));
-        body.AppendLine("  the most over the run: " + string.Join(", ", Enumerable.Range(0, most.Length).Select(one => Invariant($"{actor.Swings[one].Name} {most[one]:0.0}"))));
+        body.AppendLine(Invariant($"  played through {move.Name} ({tracks.Frames:0.#} frames at {rate:0.#} a second, round) for {SwingSeconds:0} s at 99 frames a second, {swinger.Steps} steps - each simulated bone's distance from its animated place each second, units:{line}"));
+        body.AppendLine("  the most over the run: " + string.Join(", ", Enumerable.Range(0, most.Length).Select(one => Invariant($"{links[one].Name} {most[one]:0.0}"))));
     }
 
     /// <summary>One of his animations as swept: every bone's place at frame nought, and each socketed part's bone at nought and over it.</summary>

@@ -877,12 +877,12 @@ public sealed partial class MonsterPortrait
 
     /// <summary>
     /// Whether a piece's lamp swings - the light panel's "swing", asked every pose whether the game's light is on or not; null for always.
-    /// See BoneSwinger and <see cref="Swung"/>.
+    /// See ClothSwinger and <see cref="Swung"/>.
     /// </summary>
     public Func<bool>? SceneSwing { get; set; }
 
     /// <summary>The model's swings stepped with its clock, or null where it swings nothing - made with the pose (<see cref="Rigged"/>).</summary>
-    private BoneSwinger? _swinger;
+    private ClothSwinger? _swinger;
 
     /// <summary>Whether the last pose was swung, so a change of the switch takes the pose again.</summary>
     private bool _drawnSwing = true;
@@ -891,8 +891,8 @@ public sealed partial class MonsterPortrait
     private bool Swinging() => SceneSwing?.Invoke() ?? true;
 
     /// <summary>
-    /// The swung bones set into the pose just taken: every tick the clock ran on stepped at its own frame, then each lamp hung from where the
-    /// pose put its hand (BoneSwinger.Swing). Nothing where the model swings nothing.
+    /// The simulated bones set into the pose just taken: the cloths stepped once by the time the clock ran on, as the engine steps them, each
+    /// bone then where its cloth holds it (ClothSwinger.Swing). Nothing where the model simulates nothing.
     /// </summary>
     /// <remarks>
     /// RIGHT AFTER EVERY TAKE, before anything reads the pose's skin matrices - the card's upload, the processor's vertices, the hull, the
@@ -3900,9 +3900,9 @@ public sealed partial class MonsterPortrait
 
         _pose = SkeletonPose.Of(_model.Rig);
 
-        // HIS LAMPS HANG STRAIGHT DOWN AT HIS FIRST POSE, a swinger of their own for every model (BoneSwinger).
-        IReadOnlyList<BoneSwing> swings = (_model.Actor ?? _model).Swings;
-        _swinger = swings.Count > 0 ? new BoneSwinger(swings) : null;
+        // HIS CLOTHS STAND ON THEIR TARGETS AT HIS FIRST POSE, a swinger of their own for every model (ClothSwinger).
+        IReadOnlyList<ClothSwing> swings = (_model.Actor ?? _model).Swings;
+        _swinger = swings.Count > 0 ? new ClothSwinger(swings) : null;
         _posedFor = null;
         _cpuPosedKey = -1;
         _cardBonesKey = -1;
