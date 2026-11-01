@@ -128,7 +128,7 @@ public static partial class CaptureParticles
     }
 
     /// <summary>A shader's graph list read: an engine graph as it is, a material's instances each with what the material sets on it.</summary>
-    private static List<LinkedGraph> Graphs(Func<string, string?> text, IReadOnlyList<string> paths, StringBuilder body)
+    internal static List<LinkedGraph> Graphs(Func<string, string?> text, IReadOnlyList<string> paths, StringBuilder body)
     {
         var graphs = new List<LinkedGraph>();
         void Add(string path, IReadOnlyDictionary<string, ShaderValue[]> custom)
@@ -173,7 +173,7 @@ public static partial class CaptureParticles
     /// the two of the generator's templates (module+0x31939D8, +0x3193A10) a colour pass of an unlit or a lit particle sets; the blend
     /// modes' own (GBUFFER_BLENDMODE and its kin) are not read yet.
     /// </summary>
-    private static List<string> PassMacros(IReadOnlyList<LinkedGraph> graphs)
+    internal static List<string> PassMacros(IReadOnlyList<LinkedGraph> graphs)
     {
         var macros = new List<string> { "OUTPUT_COLOR" };
         if (!graphs.Any(one => one.Graph.LightingDisabled))

@@ -1599,6 +1599,7 @@ public sealed partial class MonsterPortrait
         _cardDue = _model.Ready;
         Rigged();
         UnpackBehind();
+        ParticlesBehind();
         Said();
     }
 
@@ -2957,6 +2958,12 @@ public sealed partial class MonsterPortrait
                 : CloudsDrawn);
         }
 
+        // THE ENGINE'S GPU PARTICLES, the card's alone (MonsterPortrait.Particles): what was linked, what the card drew, the readings it takes.
+        if (ParticlesLine() is { Length: > 0 } particlesLine)
+        {
+            _status.Add(particlesLine);
+        }
+
         // THE ROOF FADE, both drawings' (RoofFade): which roof sections are hidden round the focus, and what the reading takes as given.
         if (SceneRoofFade?.Invoke() == true && Roofs() is { } roofs && _roofsShown)
         {
@@ -3818,6 +3825,7 @@ public sealed partial class MonsterPortrait
     private void Finished(float side)
     {
         Adopted();
+        ParticlesLanded();
         if (!_model.Ready)
         {
             Drop();
@@ -4090,7 +4098,7 @@ public sealed partial class MonsterPortrait
         // which drifts and rises with it (SceneLight.Fog: ScreenspaceFogFlat reads Time), and the clouds' shadow, which drifts along their
         // velocity (SceneLight.Clouds), both drawn by the card alone.
         bool drifting = _drawnLight?.Clouds is { } clouds && clouds.Drift.Speed > 0f && ShadeProgram.Distortion is not null;
-        if ((_model.Sways.Count > 0 || _drawnLight?.Fog is { Ready: true, Program.UsesTime: true } || drifting) && _onCard)
+        if ((_model.Sways.Count > 0 || _drawnLight?.Fog is { Ready: true, Program.UsesTime: true } || drifting || Particled) && _onCard)
         {
             return true;
         }
@@ -4445,7 +4453,7 @@ public sealed partial class MonsterPortrait
             _model.Mesh, 0f, 0f, Ink, _model.Skin, 1f, default, _model.Skins, Blends(),
             null, null, _drawnLight, ShadesOf(_model), _clock, _drawnDust, card.Sharp, _drawnWater,
             Sways: _model.ShapeSways.Count > 0 ? _model.ShapeSways : null, Swayed: Swayed(), Pose: _view,
-            Skinned: moving ? CardSkinned() : null);
+            Skinned: moving ? CardSkinned() : null, Particles: ParticlesNow());
         if (!gpu.Can(scene, out string why))
         {
             // A MATERIAL'S SHADER STILL COMPILING is the usual no: the picture is the processor's until
