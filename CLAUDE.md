@@ -1289,6 +1289,42 @@ for 3.5 s, then stood; ten objects round him, 675 frames each; read offline with
   allowance or time) that cancels in the Newton step - not ported. STILL OFF: the robe's tail (2.4 at most), its 157 contacts a frame on
   the CHOSEN capsule surface motion.
 
+## The GPU particles
+
+THE LAMP'S FLAME, EMBERS AND SHIMMER ARE LINKED, NOT PORTED (v0.1.429; DECIDED from the live client, 2026-11-01, asked with three questions:
+a fragment linker over porting into ShadeProgram; the engine's graph choice measured in its code before building; the engine's sources never
+committed, linked offline from a capture). Of the 721 node types the particle graphs use, 462 are ones ShadeProgram does not evaluate and 719
+are FRAGMENTs of the install's own `.ffx`, so a particle shader is linked from those word for word: `ShaderSource` reads the sources
+(FRAGMENT, DECLARATIONS, EXTENSIONPOINT, GROUP - ports with their semantics, node uniforms, includes, macros, bodies); `ParticleLinker.Update`
+writes the update compute shader - each node a block of its fragment's body with its ports as locals, extension points as variables read and
+written at their stages, `<Group>` (the editor's folding) as wiring alone, a semantic port no link feeds reading what the fragment writing
+that semantic wrote (ReadParticleUpdateId's `PARTICLE_ID`), only the uniforms the code names declared. The rule ShadeProgram's colour keeps
+holds: stages in the table's order, graphs in the list's order within one, a graph's reads at one stage before its own writes there.
+THE PARTICLES' STAGES ARE 21 (MEASURED, shader-stages.txt of 2026-11-01 16-10-02, entries 49 to 69 after ComputeInit; the schema had said 22).
+WHICH ENGINE GRAPHS AN EMITTER TAKES IS READ FROM THE CODE (`ParticleComposition`; schema `GpuParticleEmitterDef`; program-code.bin of
+2026-11-01 16-13-49): the composer at module+0x135D340 pushes, for the update, update_base, update_init_sort (it sorts: every stateful emitter
+not using its mesh's vertex groups), update_persistent, update_dynamic_culling, lifetime_pps / _distributed / _default (count_type's enum
+Fixed, Random, PPS, Expression, EPS - PPS and EPS per second), seed, emit_once, integrate, the vertex group graphs, spawn, one lock graph,
+update_group_N, then the update material LAST; for each pass base.fxgraph, render_persistent, render_default / render_mesh /
+render_vertex_group (stateless variants without an update material), render_sort, face_<face_lock lower-cased> unless None, render_transform
+unless the face is in the composer's byte table, render_flip_normal without a mesh, render_group_N, the render material LAST. The .pet reader
+stores every key 0x3B0 below the field the composer tests - checked on lock_to_screen, emit_once, mesh_set, group_size and count_type. The
+lamp's three: ember and shimmer render_default with face_velocity_camera / face_camera_fixed, the flame render_mesh with render_group_8; the
+shimmer takes update_lock_mode2 for its translation lock. NOT READ: what a mesh adds to a pass's list (module+0x13C0490 - the flame's).
+THE ENGINE'S DX11 PRELUDE stands before every shader it compiles (`ShaderPrelude`: `#define DX11`, GROUPSHARED, the buffer macros and two
+includes, `Shaders/CommonDeclarations.inc` and `Shaders/SamplerDeclarations.inc`, which declare SamplerLinearWrap, VERTEX_HAS_*, SceneInfo
+and the rest no .ffx defines) - one of five such texts in the program's read-only data, read from the exe on disk at the press, never
+committed. `particles.txt` (v0.1.429) writes it whole with the two includes and the `.hlsl` the sources include (Quaternions, HalfUtility),
+then section 6: every emitter's composed lists, its update linked - what the link left out or stood in for, the resources it names - and
+the HLSL whole; the replay links again from those files and writes them to `particles-linked/` for a compiler (DXC's Linux release runs here;
+`-T cs_6_0 -I particles-linked`). CHOSEN, said in each shader's unresolved list: UNIQUE_NODE_ID a hash of the graph and the node; COMPUTE_SHADER
+and COMPUTE defined; the engine's structs (ParticleData, ParticleEmitterData, BoneData, spline5) written from the fields the sources use, in
+the tool's order; a Spline5 baked as straight lines between its keys (the engine's bake is its C++'s - the flame has a Smooth key).
+FIRST LINK (v0.1.428's capture of 16:07, the staff in hand): the three updates 1,041 to 1,504 nodes from 108 to 115 fragments; unresolved:
+ActorVisualSizeInformation (defined by no source), a splineGrayscale uniform, ParticleEmitterShapeTransform's mesh_emitter fed by no link in
+two graphs. NEXT: a capture from v0.1.429 (prelude and includes in it), the linked updates compiled until clean - then the emitter's data
+(time, bone, transform) from the swung lamp, the dispatch on the card, the render passes linked the same way, all on the card alone.
+
 ## Verify against the game, not against yourself
 
 A check that a wrong value passes is worse than no check. Prefer tests the game itself can

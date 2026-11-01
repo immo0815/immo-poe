@@ -10,13 +10,15 @@ namespace PoEformance.Game.Files;
 /// <param name="Path">A texture's path, or empty.</param>
 /// <param name="Numbers">A value as numbers - one for a scalar or a bool, more for a vector - or empty.</param>
 /// <param name="Srgb">Whether a texture is read as sRGB, where it says.</param>
-public sealed record ShaderValue(string Path, float[] Numbers, bool? Srgb, IReadOnlyDictionary<string, CurveKey[]>? Curves = null)
+/// <param name="Curves">A curve's keys by channel - <c>""</c> for keys written straight in the parameter (a Spline5 node's <c>{"points": [...], "variance": 0.2}</c>).</param>
+/// <param name="Variance">A curve's <c>variance</c> where written (Spline5's random spread), else null.</param>
+public sealed record ShaderValue(string Path, float[] Numbers, bool? Srgb, IReadOnlyDictionary<string, CurveKey[]>? Curves = null, float? Variance = null)
 {
     /// <summary>A parameter that says nothing - written <c>{}</c>.</summary>
     public static ShaderValue Empty { get; } = new(string.Empty, [], null);
 
     /// <summary>Whether it carries anything at all.</summary>
-    public bool Said => Path.Length > 0 || Numbers.Length > 0 || Srgb is not null || Curves is { Count: > 0 };
+    public bool Said => Path.Length > 0 || Numbers.Length > 0 || Srgb is not null || Curves is { Count: > 0 } || Variance is not null;
 
     /// <summary>
     /// This parameter with whatever <paramref name="over"/> says laid over it, member by member.
@@ -32,7 +34,8 @@ public sealed record ShaderValue(string Path, float[] Numbers, bool? Srgb, IRead
                 over.Path.Length > 0 ? over.Path : Path,
                 over.Numbers.Length > 0 ? over.Numbers : Numbers,
                 over.Srgb ?? Srgb,
-                Merged(Curves, over.Curves))
+                Merged(Curves, over.Curves),
+                over.Variance ?? Variance)
             : this;
 
     /// <summary>A curve's channels with another's laid over them, channel by channel - a material setting "R" alone leaves the node's "G".</summary>
@@ -323,32 +326,52 @@ public sealed class ShaderGraph
             };
         }
 
-        // A CURVE'S CHANNELS: every member holding a "points" list - SplineColour's R, G, B and A, SplineGrayscale's A.
+        // A CURVE'S CHANNELS: every member holding a "points" list - SplineColour's R, G, B and A, SplineGrayscale's A - and a Spline5's
+        // keys written straight in the parameter, under the channel "".
         Dictionary<string, CurveKey[]>? curves = null;
+        float? variance = null;
         if (one.ValueKind == JsonValueKind.Object)
         {
+            if (one.TryGetProperty("points", out JsonElement own) && own.ValueKind == JsonValueKind.Array)
+            {
+                (curves ??= new Dictionary<string, CurveKey[]>(StringComparer.Ordinal))[string.Empty] = Keys(own);
+            }
+
+            if (one.TryGetProperty("variance", out JsonElement spread) && spread.ValueKind == JsonValueKind.Number)
+            {
+                variance = spread.GetSingle();
+            }
+
             foreach (JsonProperty member in one.EnumerateObject())
             {
                 if (member.Value.ValueKind == JsonValueKind.Object && member.Value.TryGetProperty("points", out JsonElement points)
                     && points.ValueKind == JsonValueKind.Array)
                 {
-                    var keys = new List<CurveKey>();
-                    foreach (JsonElement point in points.EnumerateArray())
-                    {
-                        if (point.ValueKind == JsonValueKind.Object
-                            && point.TryGetProperty("time", out JsonElement time) && time.ValueKind == JsonValueKind.Number
-                            && point.TryGetProperty("value", out JsonElement value_) && value_.ValueKind == JsonValueKind.Number)
-                        {
-                            keys.Add(new CurveKey(time.GetSingle(), value_.GetSingle(), Text(point, "type")));
-                        }
-                    }
-
-                    (curves ??= new Dictionary<string, CurveKey[]>(StringComparer.Ordinal))[member.Name] = [.. keys.OrderBy(key => key.Time)];
+                    (curves ??= new Dictionary<string, CurveKey[]>(StringComparer.Ordinal))[member.Name] = Keys(points);
                 }
             }
         }
 
-        return path.Length == 0 && numbers.Length == 0 && srgb is null && curves is null ? ShaderValue.Empty : new ShaderValue(path, numbers, srgb, curves);
+        return path.Length == 0 && numbers.Length == 0 && srgb is null && curves is null && variance is null
+            ? ShaderValue.Empty
+            : new ShaderValue(path, numbers, srgb, curves, variance);
+    }
+
+    /// <summary>A curve's keys in time order.</summary>
+    private static CurveKey[] Keys(JsonElement points)
+    {
+        var keys = new List<CurveKey>();
+        foreach (JsonElement point in points.EnumerateArray())
+        {
+            if (point.ValueKind == JsonValueKind.Object
+                && point.TryGetProperty("time", out JsonElement time) && time.ValueKind == JsonValueKind.Number
+                && point.TryGetProperty("value", out JsonElement value) && value.ValueKind == JsonValueKind.Number)
+            {
+                keys.Add(new CurveKey(time.GetSingle(), value.GetSingle(), Text(point, "type")));
+            }
+        }
+
+        return [.. keys.OrderBy(key => key.Time)];
     }
 
     private static string Text(JsonElement owner, string name)
