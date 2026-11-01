@@ -1459,6 +1459,9 @@ THE PARTICLES ARE DRAWN ON THE CARD (v0.1.442, DECIDED from the live client: upd
 - The light panel's "particles", on by default (`SceneLightPanel.Particles`, `MonsterPortrait.SceneParticles`). `ParticleGpuTests` holds a
   hand-written program under the engine's binding names on WARP: the update places the pool, the pass draws an instance a particle in front of
   the box. NOT YET: the sort pass, the shimmer, the engine's lights for a lit particle, a capture part writing the card's particle state.
+v0.1.442 DREW NOTHING ON WARP (the Windows job's gpu-test: "the card refused its shaders or buffers: E_INVALIDARG"): Vortice's array
+overload of CreateBuffer takes `sizeInBytes` sixth and `structureByteStride` seventh, and the spline LUT and the pool passed their stride
+sixth - structured buffers of stride nought. Named from v0.1.443, and a refusal names the step it came at (`ParticleCard.Made`).
 
 ## Verify against the game, not against yourself
 

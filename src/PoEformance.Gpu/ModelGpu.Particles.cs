@@ -718,8 +718,10 @@ public sealed partial class ModelGpu
                 }
             }
 
+            // One element a row (the engine's structBuffer<LUTData>, read as spline_lut[track].value[x / 2]). Named: Vortice's array overload takes
+            // the size before the stride, and a stride passed sixth is a structured buffer of stride nought, which the card refuses (E_INVALIDARG).
             int stride = ShadeProgram.CurveWidth * 2;
-            Lut = device.CreateBuffer(words, BindFlags.ShaderResource, ResourceUsage.Immutable, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, stride);
+            Lut = device.CreateBuffer(words, BindFlags.ShaderResource, ResourceUsage.Immutable, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, sizeInBytes: 0, structureByteStride: stride);
             LutView = device.CreateShaderResourceView(Lut, new ShaderResourceViewDescription(Lut, Format.Unknown, 0, rows, BufferExtendedShaderResourceViewFlags.None));
         }
 
@@ -807,31 +809,41 @@ public sealed partial class ModelGpu
                 return false;
             }
 
+            // The step under way, named in the refusal: an HRESULT alone (E_INVALIDARG) says nothing of which of a dozen calls it was.
+            string step = "the update shader";
             try
             {
                 Update = new Shader { Compute = device.CreateComputeShader(code.Update!), Code = code.Update!, Tracks = _program.Update.Tracks };
+                step = "the update's constants or spline LUT";
                 Update.Reflect(device);
                 for (var p = 0; p < _program.Passes.Count; p++)
                 {
+                    step = $"pass {p}'s vertex shader, its constants or spline LUT";
                     var vertex = new Shader { VertexShader = device.CreateVertexShader(code.Vertex[p]!), Code = code.Vertex[p]!, Tracks = _program.Passes[p].Vertex.Tracks };
                     vertex.Reflect(device);
+                    step = $"pass {p}'s pixel shader, its constants or spline LUT";
                     var pixel = new Shader { PixelShader = device.CreatePixelShader(code.Pixel[p]!), Code = code.Pixel[p]!, Tracks = _program.Passes[p].Pixel.Tracks };
                     pixel.Reflect(device);
+                    step = $"pass {p}'s input layout";
                     (InputElementDescription[] elements, string[] streams) = Layout(vertex.Code);
                     Passes.Add(new PassCard(vertex, pixel, device.CreateInputLayout(elements, vertex.Code), streams));
                 }
 
                 int stride = Update.Bindings.FirstOrDefault(one => one.Name == "particles_data_write") is { Stride: > 0 } pool ? pool.Stride : 112;
                 int count = Math.Max(1, _program.Count);
+                step = $"the particle pool ({count} of {stride} bytes)";
                 (_pool, _poolWrite, _poolRead) = Structured(device, stride, count, zeroed: true);
+                step = "the particle index, culling meta or tiles";
                 (_index, _indexWrite, _indexRead) = Raw(device, count);
                 (_meta, _metaWrite, _) = Raw(device, 1024);
                 (_tiles, _tilesWrite, _) = Raw(device, 1024);
+                step = "the emitter record or its bones";
                 Emitter = device.CreateBuffer(new BufferDescription(Marshal.SizeOf<EmitterRecord>(), BindFlags.ShaderResource, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, Marshal.SizeOf<EmitterRecord>()));
                 _emitterRead = device.CreateShaderResourceView(Emitter, new ShaderResourceViewDescription(Emitter, Format.Unknown, 0, 1, BufferExtendedShaderResourceViewFlags.None));
                 BonesHeld = new Vector4[2 * 64];
                 Bones = device.CreateBuffer(new BufferDescription(BonesHeld.Length * 16, BindFlags.ShaderResource, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, 32));
                 _bonesRead = device.CreateShaderResourceView(Bones, new ShaderResourceViewDescription(Bones, Format.Unknown, 0, BonesHeld.Length / 2, BufferExtendedShaderResourceViewFlags.None));
+                step = "the mesh's buffers";
                 ParticleMeshData mesh = _program.Mesh;
                 _positions = device.CreateBuffer(mesh.Positions, BindFlags.VertexBuffer, ResourceUsage.Immutable);
                 _coordinates = device.CreateBuffer(mesh.Coordinates, BindFlags.VertexBuffer, ResourceUsage.Immutable);
@@ -844,7 +856,7 @@ public sealed partial class ModelGpu
             }
             catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
             {
-                why = _why = "the card refused its shaders or buffers: " + exception.Message;
+                why = _why = $"the card refused {step}: {exception.Message}";
                 return false;
             }
         }
@@ -926,7 +938,7 @@ public sealed partial class ModelGpu
         private static (ID3D11Buffer, ID3D11UnorderedAccessView, ID3D11ShaderResourceView) Structured(ID3D11Device device, int stride, int count, bool zeroed)
         {
             ID3D11Buffer buffer = zeroed
-                ? device.CreateBuffer(new byte[stride * count], BindFlags.ShaderResource | BindFlags.UnorderedAccess, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, stride)
+                ? device.CreateBuffer(new byte[stride * count], BindFlags.ShaderResource | BindFlags.UnorderedAccess, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, sizeInBytes: 0, structureByteStride: stride)
                 : device.CreateBuffer(new BufferDescription(stride * count, BindFlags.ShaderResource | BindFlags.UnorderedAccess, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, stride));
             return (buffer,
                 device.CreateUnorderedAccessView(buffer, new UnorderedAccessViewDescription(buffer, Format.Unknown, 0, count, BufferUnorderedAccessViewFlags.None)),
@@ -935,7 +947,7 @@ public sealed partial class ModelGpu
 
         private static (ID3D11Buffer, ID3D11UnorderedAccessView, ID3D11ShaderResourceView) Raw(ID3D11Device device, int words)
         {
-            ID3D11Buffer buffer = device.CreateBuffer(new uint[words], BindFlags.ShaderResource | BindFlags.UnorderedAccess, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferAllowRawViews, 0);
+            ID3D11Buffer buffer = device.CreateBuffer(new uint[words], BindFlags.ShaderResource | BindFlags.UnorderedAccess, ResourceUsage.Default, CpuAccessFlags.None, ResourceOptionFlags.BufferAllowRawViews, sizeInBytes: 0, structureByteStride: 0);
             return (buffer,
                 device.CreateUnorderedAccessView(buffer, new UnorderedAccessViewDescription(buffer, Format.R32_Typeless, 0, words, BufferUnorderedAccessViewFlags.Raw)),
                 device.CreateShaderResourceView(buffer, new ShaderResourceViewDescription(buffer, Format.R32_Typeless, 0, words, BufferExtendedShaderResourceViewFlags.Raw)));
