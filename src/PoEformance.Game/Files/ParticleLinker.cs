@@ -78,6 +78,47 @@ public static class ParticleLinker
     /// <summary>The update shader's entry point.</summary>
     public const string UpdateEntry = "UpdateParticles";
 
+    /// <summary>A render pass's vertex shader's entry point.</summary>
+    public const string VertexEntry = "VertexMain";
+
+    /// <summary>A render pass's pixel shader's entry point.</summary>
+    public const string PixelEntry = "PixelMain";
+
+    /// <summary>
+    /// The material pipeline's vertex stages in the engine's order - MEASURED, the client's stage table entries 0 to 16 (shader-stages.txt of
+    /// 2026-11-01 16-10-02; ShadeProgram.Stages names the same as far as PreLighting_Final).
+    /// </summary>
+    public static readonly IReadOnlyList<string> VertexStages =
+    [
+        "VertexInit", "Animation", "LocalTransform", "LocalTransform_Calc", "LocalTransform_Final",
+        "WorldTransform_Init", "WorldTransform", "WorldTransform_Calc", "WorldTransform_Final",
+        "ProjectionTransform_Init", "ProjectionTransform", "ProjectionTransform_Calc", "ProjectionTransform_Final",
+        "VertexOutput", "VertexOutput_Calc", "VertexOutput_Final", "VertexOutput_Pass",
+    ];
+
+    /// <summary>The material pipeline's pixel stages in the engine's order - MEASURED, the stage table's entries 17 to 47.</summary>
+    public static readonly IReadOnlyList<string> PixelStages =
+    [
+        "VertexToPixel", "PixelInit", "UVSetup", "UVSetup_Calc", "UVSetup_Final",
+        "Texturing_Init", "Texturing", "Texturing_Calc", "Texturing_Final", "PreLighting", "PreLighting_Calc", "PreLighting_Final",
+        "AlphaClip", "Lighting", "Lighting_Calc", "Lighting_Final", "CustomLighting", "CustomLighting_Calc", "CustomLighting_Final",
+        "LightingEnd", "LightingEnd_Calc", "LightingEnd_Final", "PostLighting", "PostLighting_Calc", "PostLighting_Final",
+        "FogStage", "FogStage_Calc", "FogStage_Final", "PixelOutput", "PixelOutput_Calc", "PixelOutput_Final",
+    ];
+
+    /// <summary>Which shader a link writes.</summary>
+    public enum Side
+    {
+        /// <summary>The particle update's compute shader.</summary>
+        Update,
+
+        /// <summary>A render pass's vertex shader.</summary>
+        Vertex,
+
+        /// <summary>A render pass's pixel shader.</summary>
+        Pixel,
+    }
+
     /// <summary>
     /// The engine's vertex layout as its graph compiler turns it into the <c>VERTEX_HAS_*</c>, <c>VERTEX_OFFSET_*</c> and <c>VERTEX_SIZE</c> macros
     /// the sources read a mesh's vertex by (gpu_particles_emitter_mesh) - READ from the program (the build of 2026-10-27): the generator at
@@ -119,8 +160,116 @@ public static class ParticleLinker
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(graphs);
-        return new Link(source, graphs, prelude ?? string.Empty).Run();
+        return new Link(source, graphs, prelude ?? string.Empty, Side.Update, [], []).Run();
     }
+
+    /// <summary>
+    /// Links a render pass's vertex and pixel shaders from its graphs, in the composer's order (base.fxgraph first, the render material last),
+    /// the pixel shader first: the values it reads of the vertex side cross as interpolants the vertex shader then writes, and both share one
+    /// struct of what passes between them.
+    /// </summary>
+    /// <remarks>
+    /// AS THE ENGINE'S GENERATOR WRITES IT, READ FROM ITS TEMPLATES (program-code.bin, module+0x3193388 to +0x3195030 of the build of
+    /// 2026-10-27): a node's machine semantics (POSITION, TEXCOORDn, COLORn, INSTANCEID, the SV_ ones, PIXEL_RETURN_SEMANTIC_COLOR) are the
+    /// shader's own inputs and outputs, collected into a struct (ShaderOut, `shader_out_data.`); a value a pixel stage reads of a vertex
+    /// stage crosses as a generated semantic (`AUTO_S_%s_%s`); every other semantic is a variable the fragments share (semantics_data,
+    /// surface_data). CHOSEN, said in each shader's unresolved list: a node of no stage and no side runs in the shader that reads it, a
+    /// vertex value it needs crossing interpolated - the engine's placement of such a node is its generator's, not read; POSITION and VPOS
+    /// are SV_Position, a crossing of an integer or a boolean is not interpolated.
+    /// </remarks>
+    /// <param name="source">The engine's shader sources.</param>
+    /// <param name="graphs">The pass's graphs - <see cref="ParticleComposition"/>'s pass list read.</param>
+    /// <param name="prelude">The engine's DX11 prelude, put first.</param>
+    /// <param name="macros">The pass's own macros (the colour pass's OUTPUT_COLOR, a lit material's HAS_LIGHTING), before every fragment's.</param>
+    public static (LinkedShader Vertex, LinkedShader Pixel) Render(ShaderSource source, IReadOnlyList<LinkedGraph> graphs, string? prelude, IReadOnlyCollection<string> macros)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(graphs);
+        ArgumentNullException.ThrowIfNull(macros);
+        var pixelLink = new Link(source, graphs, prelude ?? string.Empty, Side.Pixel, macros, []);
+        pixelLink.Prepare();
+        var vertexLink = new Link(source, graphs, prelude ?? string.Empty, Side.Vertex, macros, pixelLink.Crossings);
+        vertexLink.Prepare();
+        LinkedShader pixel = pixelLink.Write(vertexLink.FragmentMacros);
+        LinkedShader vertex = vertexLink.Write(pixelLink.FragmentMacros);
+
+        // ONE STRUCT BETWEEN THEM: every machine semantic the vertex shader writes or the pixel shader reads, each inside the lines its port
+        // stood inside (VertexOutput's TEXCOORD5 under VERTEX_OUTPUT_TBN), and every crossing.
+        var members = new SortedDictionary<string, (string Type, string Semantic, bool Flat, string Condition)>(StringComparer.Ordinal);
+        foreach ((string semantic, (string type, string condition)) in vertexLink.Outputs.Concat(pixelLink.Inputs))
+        {
+            (string member, string bound) = Member(semantic);
+            members.TryAdd(member, (Stored(type), bound, Flat(type), condition));
+        }
+
+        foreach (Crossing crossing in pixelLink.Crossings)
+        {
+            members.TryAdd(crossing.Name, (Stored(crossing.Type), crossing.Name, Flat(crossing.Type), string.Empty));
+        }
+
+        var shared = new StringBuilder("struct Interstage\n{\n");
+        foreach ((string member, (string type, string semantic, bool flat, string condition)) in members)
+        {
+            shared.Append(Link.Guarded(condition, $"    {(flat && semantic != "SV_Position" ? "nointerpolation " : string.Empty)}{type} {member} : {semantic};"));
+        }
+
+        shared.Append("};\n");
+        return (vertex with { Hlsl = vertex.Hlsl.Replace(InterstagePlace, shared.ToString(), StringComparison.Ordinal) },
+            pixel with { Hlsl = pixel.Hlsl.Replace(InterstagePlace, shared.ToString(), StringComparison.Ordinal) });
+    }
+
+    /// <summary>A value a pixel stage reads of a vertex stage: the node and output it comes from, its type, and the interpolant carrying it.</summary>
+    public sealed record Crossing(int Graph, string Key, string Variable, string Type, string Name);
+
+    /// <summary>Where the struct between the two shaders goes, until both are linked.</summary>
+    private const string InterstagePlace = "/*INTERSTAGE*/";
+
+    /// <summary>
+    /// Whether a semantic is the shader's own input or output rather than a variable the fragments share - the generator's list of machine
+    /// semantics as its templates and the prelude name them.
+    /// </summary>
+    public static bool Machine(string semantic)
+    {
+        if (semantic.StartsWith("SV_", StringComparison.OrdinalIgnoreCase) || semantic.StartsWith("PIXEL_RETURN_SEMANTIC", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        string bare = semantic.TrimEnd('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+        return bare is "POSITION" or "POSITIONT" or "NORMAL" or "TANGENT" or "BINORMAL" or "BLENDINDICES" or "BLENDWEIGHT" or "COLOR"
+            or "TEXCOORD" or "PSIZE" or "DEPTH" or "VPOS" or "VFACE" or "INSTANCEID";
+    }
+
+    /// <summary>A machine semantic's member of the struct between the shaders, and the semantic it is bound to there.</summary>
+    private static (string Member, string Semantic) Member(string semantic)
+        => semantic.ToUpperInvariant() switch
+        {
+            "POSITION" or "SV_POSITION" or "VPOS" or "POSITIONT" => ("position", "SV_Position"),
+            var upper when upper.StartsWith("PIXEL_RETURN_SEMANTIC", StringComparison.Ordinal) => ("target_" + Link.Safe(semantic), "SV_Target" + Target(upper)),
+            var upper => (upper.ToLowerInvariant(), upper),
+        };
+
+    /// <summary>
+    /// Which render target a pixel return semantic writes: the plain one 0, the numbered ones their number, the named ones the colour 0 and
+    /// then the motion vector, the GI's light and its normals 1 to 3. The generator writes <c>#define PIXEL_RETURN_SEMANTIC_COLOR </c> and its
+    /// kin with a number it chooses per pass (its templates, module+0x3194220 to +0x3194300), not read - CHOSEN in that order; the colour pass
+    /// defines none of OUTPUT_MVEC and the GI's macros, so only the colour is written.
+    /// </summary>
+    private static int Target(string semantic)
+        => semantic switch
+        {
+            "PIXEL_RETURN_SEMANTIC_MVEC" => 1,
+            "PIXEL_RETURN_SEMANTIC_GI_LIGHT" => 2,
+            "PIXEL_RETURN_SEMANTIC_GI_NORMALS" => 3,
+            _ => semantic.Length > 0 && char.IsAsciiDigit(semantic[^1]) ? semantic[^1] - '0' : 0,
+        };
+
+    /// <summary>A type as the struct between the shaders can carry it - a boolean as an unsigned integer.</summary>
+    private static string Stored(string type) => type.StartsWith("bool", StringComparison.Ordinal) ? "uint" + type[4..] : type;
+
+    /// <summary>Whether a type is passed between the shaders as it is, not interpolated.</summary>
+    private static bool Flat(string type)
+        => type.StartsWith("uint", StringComparison.Ordinal) || type.StartsWith("int", StringComparison.Ordinal) || type.StartsWith("bool", StringComparison.Ordinal);
 
     /// <summary>
     /// A Spline5 parameter as the <c>spline5</c> struct SampleSpline5 reads: up to four segments between its keys, each a cubic in time
@@ -229,11 +378,36 @@ public static class ParticleLinker
     }
 
     /// <summary>One run of the link over one shader's graphs.</summary>
-    private sealed class Link(ShaderSource source, IReadOnlyList<LinkedGraph> graphs, string prelude)
+    private sealed class Link(ShaderSource source, IReadOnlyList<LinkedGraph> graphs, string prelude, Side side, IReadOnlyCollection<string> passMacros, IReadOnlyList<Crossing> crossed)
     {
+        /// <summary>The values this pixel shader reads of the vertex side - what the vertex shader is to write.</summary>
+        public List<Crossing> Crossings { get; } = [];
+
+        /// <summary>The machine semantics this shader reads (a vertex shader's from the mesh, a pixel shader's from the vertex shader), by semantic.</summary>
+        public SortedDictionary<string, (string Type, string Condition)> Inputs { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>The machine semantics this shader writes, by semantic.</summary>
+        public SortedDictionary<string, (string Type, string Condition)> Outputs { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>The macros this shader's fragments declare - the other shader of the pass is written with them too.</summary>
+        public IEnumerable<string> FragmentMacros => _fragments.SelectMany(fragment => fragment.Macros);
+
+        /// <summary>The system values this shader reads (SV_InstanceID, SV_IsFrontFace...) - its entry point's own parameters.</summary>
+        private readonly SortedDictionary<string, string> _system = new(StringComparer.Ordinal);
+
+        /// <summary>This shader's stages in the engine's order.</summary>
+        private readonly IReadOnlyList<string> _stages = side switch
+        {
+            Side.Vertex => VertexStages,
+            Side.Pixel => PixelStages,
+            _ => Stages,
+        };
+
         private readonly List<Node> _nodes = [];
         private readonly Dictionary<(int Graph, string Key), Node> _byKey = [];
         private readonly Dictionary<(int Graph, string Key, string Variable), List<ShaderLink>> _into = [];
+        private readonly Dictionary<(int Graph, string Key), List<ShaderLink>> _intoNode = [];
+        private readonly HashSet<(int Graph, string Key)> _read = [];
         private readonly StringBuilder _main = new();
         private readonly SortedSet<string> _unresolved = new(StringComparer.Ordinal);
         private readonly List<(string Name, string Filled)> _resources = [];
@@ -247,9 +421,15 @@ public static class ParticleLinker
 
         public LinkedShader Run()
         {
+            Prepare();
+            return Write([]);
+        }
+
+        /// <summary>The nodes gathered and ordered, the code emitted - all but the shader's text.</summary>
+        public void Prepare()
+        {
             Gather();
             Order();
-            return Write();
         }
 
         /// <summary>Every node of every graph, classified, and every link by its target.</summary>
@@ -278,6 +458,13 @@ public static class ParticleLinker
                     }
 
                     list.Add(link);
+                    if (!_intoNode.TryGetValue((g, target), out List<ShaderLink>? whole))
+                    {
+                        _intoNode[(g, target)] = whole = [];
+                    }
+
+                    whole.Add(link);
+                    _read.Add((g, ShaderGraph.Key(link.Source.Type, link.Source.Index, link.Source.Stage)));
                 }
             }
 
@@ -285,7 +472,9 @@ public static class ParticleLinker
             {
                 if (node.Kind == NodeKind.Fragment && node.Block is { } fragment)
                 {
-                    foreach (ShaderPort port in fragment.Ports.Where(port => port.Direction is "out" or "inout" && port.Semantic.Length > 0 && !port.Semantic.StartsWith("SV_", StringComparison.Ordinal)))
+                    // A SEMANTIC'S WRITERS ARE ITS PURE OUTPUTS: an inout port reads it first (FromVertexUV's semantics_data), and counting it a
+                    // writer orders every reader after every other reader - cycles in base.fxgraph's pixel side.
+                    foreach (ShaderPort port in fragment.Ports.Where(port => port.Direction == "out" && port.Semantic.Length > 0 && !port.Semantic.StartsWith("SV_", StringComparison.Ordinal)))
                     {
                         if (!_semanticWriters.TryGetValue(port.Semantic, out List<Node>? writers))
                         {
@@ -327,24 +516,49 @@ public static class ParticleLinker
                 .Where(node => node.Kind is NodeKind.Read or NodeKind.Write)
                 .Select(node => (Node: node, Stage: StageOf(node)))
                 .ToList();
-            foreach ((Node node, int stage) in anchors.Where(one => one.Stage < 0))
+            foreach ((Node node, int stage) in anchors.Where(one => one.Stage < 0 && SideOfStage(one.Node.Source.Stage) is null))
             {
-                _unresolved.Add($"{node.Source.Type} at stage \"{node.Source.Stage}\" in {graphs[node.Graph].Path}: no stage of the update shader");
+                _unresolved.Add($"{node.Source.Type} at stage \"{node.Source.Stage}\" in {graphs[node.Graph].Path}: no stage of the {Said(side)}");
             }
 
-            foreach ((Node node, _) in anchors
-                .Where(one => one.Stage >= 0)
+            // A RENDER SHADER'S OUTPUTS ARE THE NODES OF ITS SIDE NOTHING READS (v0.1.440): base.fxgraph's VertexOutputPosition writes POSITION
+            // and INSTANCEID, render_default's OutputVertexColor the vertex colour into semantics_data, and OutputVertexPosition,
+            // OutputVertexTBN and OutputVertexUV are a macro alone (VERTEX_OUTPUT_POSITION...) that every output's port stands under - none
+            // links on, so nothing pulled them in and the vertex shader wrote no position. Each runs at the latest stage of what it reads,
+            // after that stage's reads and before its writes (CHOSEN: the generator's placement is not read); one reading nothing runs first.
+            // The update's such nodes are its side effects alone, run as before.
+            var ordered = anchors.Where(one => one.Stage >= 0).Select(one => (one.Node, one.Stage, Kind: one.Node.Kind == NodeKind.Read ? 0 : 2)).ToList();
+            if (side != Side.Update)
+            {
+                var latest = new Dictionary<Node, int>();
+                ordered.AddRange(_nodes
+                    .Where(node => node.Kind == NodeKind.Fragment && SideOf(node) == side && !_read.Contains((node.Graph, node.Key)))
+                    .Select(node => (node, Latest(node, latest), 1)));
+            }
+
+            foreach ((Node node, _, _) in ordered
                 .OrderBy(one => one.Stage)
                 .ThenBy(one => one.Node.Graph)
-                .ThenBy(one => one.Node.Kind == NodeKind.Read ? 0 : 1)
+                .ThenBy(one => one.Kind)
                 .ThenBy(one => one.Node.Order))
             {
                 Emit(node);
             }
 
-            foreach (Node node in _nodes.Where(node => node.Kind == NodeKind.Fragment && node.Block!.Has("sideeffects") && !node.Done))
+            foreach (Node node in _nodes.Where(node => node.Kind == NodeKind.Fragment && node.Block!.Has("sideeffects") && !node.Done && Allowed(node)))
             {
                 Emit(node);
+            }
+
+            // A VERTEX SHADER WRITES WHAT THE PIXEL SHADER READS OF IT: every crossing's value into its interpolant.
+            foreach (Crossing crossing in crossed)
+            {
+                if (_byKey.TryGetValue((crossing.Graph, crossing.Key), out Node? from))
+                {
+                    Emit(from);
+                    string value = $"{from.Name}_{(from.Kind == NodeKind.Read ? "output" : crossing.Variable)}";
+                    _main.Append(CultureInfo.InvariantCulture, $"    vout.{crossing.Name} = ({Stored(crossing.Type)})({value}); // to the pixel shader").Append('\n');
+                }
             }
 
             foreach (Node node in _nodes.Where(node => node.Kind == NodeKind.Unknown))
@@ -353,11 +567,57 @@ public static class ParticleLinker
             }
         }
 
-        private static int StageOf(Node node)
+        /// <summary>Whether a node is the pixel shader's or reads, through every node between, something that is.</summary>
+        private bool ReadsPixel(Node node, HashSet<Node> seen)
         {
-            for (var at = 0; at < Stages.Count; at++)
+            if (SideOf(node) is { } own)
             {
-                if (string.Equals(Stages[at], node.Source.Stage, StringComparison.Ordinal))
+                return own == Side.Pixel;
+            }
+
+            if (!seen.Add(node))
+            {
+                return false;
+            }
+
+            foreach (ShaderLink link in _intoNode.GetValueOrDefault((node.Graph, node.Key)) ?? [])
+            {
+                if (_byKey.TryGetValue((node.Graph, ShaderGraph.Key(link.Source.Type, link.Source.Index, link.Source.Stage)), out Node? from) && ReadsPixel(from, seen))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>The latest of this shader's stages among the extension points a node reads, through every node between; -1 for none.</summary>
+        private int Latest(Node node, Dictionary<Node, int> known)
+        {
+            if (known.TryGetValue(node, out int had))
+            {
+                return had;
+            }
+
+            known[node] = -1; // a cycle reads as nothing; Emit says so
+            int latest = -1;
+            foreach (ShaderLink link in _intoNode.GetValueOrDefault((node.Graph, node.Key)) ?? [])
+            {
+                if (_byKey.TryGetValue((node.Graph, ShaderGraph.Key(link.Source.Type, link.Source.Index, link.Source.Stage)), out Node? from))
+                {
+                    latest = Math.Max(latest, from.Kind is NodeKind.Read or NodeKind.Write ? StageOf(from) : Latest(from, known));
+                }
+            }
+
+            known[node] = latest;
+            return latest;
+        }
+
+        private int StageOf(Node node)
+        {
+            for (var at = 0; at < _stages.Count; at++)
+            {
+                if (string.Equals(_stages[at], node.Source.Stage, StringComparison.Ordinal))
                 {
                     return at;
                 }
@@ -365,6 +625,49 @@ public static class ParticleLinker
 
             return -1;
         }
+
+        /// <summary>Which shader a stage belongs to; null for a stage of none.</summary>
+        private static Side? SideOfStage(string stage)
+            => VertexStages.Contains(stage, StringComparer.Ordinal) ? Side.Vertex
+                : PixelStages.Contains(stage, StringComparer.Ordinal) ? Side.Pixel
+                : Stages.Contains(stage, StringComparer.Ordinal) ? Side.Update
+                : null;
+
+        /// <summary>
+        /// Which shader a node must run in: an extension point's by its stage, a fragment flagged for one shader alone by its flag; null for
+        /// one that runs wherever it is read.
+        /// </summary>
+        private static Side? SideOf(Node node)
+        {
+            if (node.Kind is NodeKind.Read or NodeKind.Write)
+            {
+                return SideOfStage(node.Source.Stage);
+            }
+
+            if (node.Kind != NodeKind.Fragment || node.Block is not { } fragment)
+            {
+                return null;
+            }
+
+            bool compute = fragment.Has("compute"), vertex = fragment.Has("vertex"), pixel = fragment.Has("pixel");
+            return (compute, vertex, pixel) switch
+            {
+                (true, false, false) => Side.Update,
+                (false, true, false) => Side.Vertex,
+                (false, false, true) => Side.Pixel,
+                _ => null,
+            };
+        }
+
+        /// <summary>Whether a node may run in this shader.</summary>
+        private bool Allowed(Node node) => SideOf(node) is not { } only || only == side;
+
+        private static string Said(Side kind) => kind switch
+        {
+            Side.Vertex => "vertex shader",
+            Side.Pixel => "pixel shader",
+            _ => "update shader",
+        };
 
         /// <summary>Writes a node's code after everything it reads; nothing for a node already written or being written (a cycle, said).</summary>
         private void Emit(Node node)
@@ -409,12 +712,18 @@ public static class ParticleLinker
         private void EmitRead(Node node)
         {
             ShaderBlock block = node.Block!;
-            if (block.Bodies.ContainsKey("read"))
+            string type = block.Value("type");
+            if (Coded(block, "read") is { } read)
             {
-                _unresolved.Add($"extension point {block.Name} is read through its own code (read:), which the update shader does not bind");
+                // AN EXTENSION POINT KEPT IN A SHARED STRUCT (AlbedoColor in surface_data) is read through its own code over that struct -
+                // its writers pulled in first, outside the block.
+                string bound = Bound(block, node);
+                _main.Append(CultureInfo.InvariantCulture, $"    {type} {node.Name}_output = ({type})0; // {node.Source.Type} @{node.Source.Stage}, {Path.GetFileName(graphs[node.Graph].Path)}, its read code").Append('\n');
+                _main.Append("    {\n").Append(bound).Append(CultureInfo.InvariantCulture, $"        {type} value = ({type})0;\n{read}\n        {node.Name}_output = value;\n    }}\n");
+                _emitted++;
+                return;
             }
 
-            string type = block.Value("type");
             _main.Append(CultureInfo.InvariantCulture, $"    {type} {node.Name}_output = {Extension(block)}; // {node.Source.Type} @{node.Source.Stage}, {Path.GetFileName(graphs[node.Graph].Path)}").Append('\n');
             _emitted++;
         }
@@ -424,11 +733,67 @@ public static class ParticleLinker
             ShaderBlock block = node.Block!;
             string type = block.Value("type");
             string? value = Input(node, "input", type);
-            string variable = Extension(block);
-            if (value is not null)
+            if (value is null)
             {
-                _main.Append(CultureInfo.InvariantCulture, $"    {variable} = {value}; // {node.Source.Type} @{node.Source.Stage}, {Path.GetFileName(graphs[node.Graph].Path)}").Append('\n');
+                return;
+            }
+
+            if (Coded(block, "write") is { } write)
+            {
+                string bound = Bound(block, node);
+                _main.Append(CultureInfo.InvariantCulture, $"    {{ // {node.Source.Type} @{node.Source.Stage}, {Path.GetFileName(graphs[node.Graph].Path)}, its write code").Append('\n');
+                _main.Append(bound).Append(CultureInfo.InvariantCulture, $"        {type} value = {value};\n{write}\n");
+                foreach (ShaderPort port in block.Ports.Where(port => port.Direction is "out" or "inout" && port.Semantic.Length > 0))
+                {
+                    _main.Append(CultureInfo.InvariantCulture, $"        {Semantic(port)} = {port.Name};").Append('\n');
+                }
+
+                _main.Append("    }\n");
                 _emitted++;
+                return;
+            }
+
+            _main.Append(CultureInfo.InvariantCulture, $"    {Extension(block)} = {value}; // {node.Source.Type} @{node.Source.Stage}, {Path.GetFileName(graphs[node.Graph].Path)}").Append('\n');
+            _emitted++;
+        }
+
+        /// <summary>An extension point's own read or write code where it has one that says something, else null.</summary>
+        private static string? Coded(ShaderBlock block, string name)
+            => block.Bodies.TryGetValue(name, out string? code) && code.Trim().Length > 0 && block.Ports.Count > 0 ? code.Trim() : null;
+
+        /// <summary>An extension point's ports as locals over the shared variables their semantics name, their writers run first.</summary>
+        private string Bound(ShaderBlock block, Node node)
+        {
+            var bound = new StringBuilder();
+            foreach (ShaderPort port in block.Ports.Where(port => port.Semantic.Length > 0))
+            {
+                if (port.Direction is "in" or "inout")
+                {
+                    PullWriters(port.Semantic, node);
+                }
+
+                bound.Append(Guarded(port.Condition, $"        {port.Type} {port.Name} = {Semantic(port)};"));
+            }
+
+            return bound.ToString();
+        }
+
+        /// <summary>The fragments writing a shared semantic run before a node reading it - those of this shader alone.</summary>
+        private void PullWriters(string semantic, Node reader)
+        {
+            if (semantic.StartsWith("SV_", StringComparison.Ordinal) || (side != Side.Update && Machine(semantic)))
+            {
+                return;
+            }
+
+            foreach (Node writer in _semanticWriters.GetValueOrDefault(semantic) ?? [])
+            {
+                // A WRITER OF NO SIDE THAT HANGS ON THE PIXEL SHADER is not the vertex shader's: render_default's SetRandomSeed #1 writes
+                // RANDOM_SEED from the particle the pixel side read (ReadParticleData #1 after SetParticlePixelId) - a vertex shader cannot run it.
+                if (writer != reader && Allowed(writer) && !(side == Side.Vertex && ReadsPixel(writer, [])))
+                {
+                    Emit(writer);
+                }
             }
         }
 
@@ -436,9 +801,13 @@ public static class ParticleLinker
         private void EmitFragment(Node node)
         {
             ShaderBlock fragment = node.Block!;
-            if (!fragment.Has("compute") && (fragment.Has("pixel") || fragment.Has("vertex")))
+            if (side == Side.Update && !fragment.Has("compute") && (fragment.Has("pixel") || fragment.Has("vertex")))
             {
                 _unresolved.Add($"fragment {fragment.Name} is a {(fragment.Has("pixel") ? "pixel" : "vertex")} shader's, used in the update ({Path.GetFileName(graphs[node.Graph].Path)})");
+            }
+            else if (side != Side.Update && !Allowed(node))
+            {
+                _unresolved.Add($"fragment {fragment.Name} is not the {Said(side)}'s, used in it ({Path.GetFileName(graphs[node.Graph].Path)})");
             }
 
             // WHAT IT READS FIRST.
@@ -448,15 +817,9 @@ public static class ParticleLinker
                 if (port.Direction is "in" or "inout")
                 {
                     string? value = Input(node, port.Name, port.Type);
-                    if (value is null && port.Semantic.Length > 0 && !port.Semantic.StartsWith("SV_", StringComparison.Ordinal))
+                    if (value is null && port.Semantic.Length > 0 && !port.Semantic.StartsWith("SV_", StringComparison.Ordinal) && !(side != Side.Update && Machine(port.Semantic)))
                     {
-                        foreach (Node writer in _semanticWriters.GetValueOrDefault(port.Semantic) ?? [])
-                        {
-                            if (writer != node)
-                            {
-                                Emit(writer);
-                            }
-                        }
+                        PullWriters(port.Semantic, node);
                     }
 
                     inputs.Add((port, value));
@@ -472,19 +835,19 @@ public static class ParticleLinker
             code.Append(CultureInfo.InvariantCulture, $"    // {fragment.Name} #{node.Source.Index}{(node.Source.Stage.Length > 0 ? " @" + node.Source.Stage : string.Empty)}, {Path.GetFileName(graphs[node.Graph].Path)}").Append('\n');
             foreach (ShaderPort port in fragment.Ports.Where(port => port.Direction is "out" or "inout"))
             {
-                code.Append(CultureInfo.InvariantCulture, $"    {port.Type} {node.Name}_{port.Name} = ({port.Type})0;").Append('\n');
+                code.Append(Declare(port.Type, $"{node.Name}_{port.Name}", null, "    ")).Append('\n');
             }
 
             code.Append("    {\n");
             code.Append(CultureInfo.InvariantCulture, $"#define UNIQUE_NODE_ID {NodeId(graphs[node.Graph].Path, node.Key)}u").Append('\n');
             foreach ((ShaderPort port, string? value) in inputs)
             {
-                code.Append(Guarded(port.Condition, $"        {port.Type} {port.Name} = {value ?? Unfed(node, port)};"));
+                code.Append(Guarded(port.Condition, Declare(port.Type, port.Name, value ?? Unfed(node, port), "        ")));
             }
 
             foreach (ShaderPort port in fragment.Ports.Where(port => port.Direction == "out"))
             {
-                code.Append(Guarded(port.Condition, $"        {port.Type} {port.Name} = ({port.Type})0;"));
+                code.Append(Guarded(port.Condition, Declare(port.Type, port.Name, null, "        ")));
             }
 
             var defined = new List<string>();
@@ -496,7 +859,7 @@ public static class ParticleLinker
                     string local = UniformLocal(node, uniform, u);
                     if (local.StartsWith("#define", StringComparison.Ordinal))
                     {
-                        defined.Add(uniform.Name);
+                        defined.AddRange(local.Split('\n').Select(line => line.Split(' ')[1]));
                         code.Append(local).Append('\n');
                     }
                     else
@@ -509,8 +872,13 @@ public static class ParticleLinker
             code.Append(fragment.Body.TrimEnd()).Append('\n');
             foreach (ShaderPort port in fragment.Ports.Where(port => port.Direction is "out" or "inout"))
             {
-                string copy = $"        {node.Name}_{port.Name} = {port.Name};";
-                if (port.Semantic.Length > 0 && !port.Semantic.StartsWith("SV_", StringComparison.Ordinal))
+                string copy = $"        {node.Name}_{port.Name} = {port.Name};{(Resource(port.Type) is not null ? $" {node.Name}_{port.Name}_index = {port.Name}_index;" : string.Empty)}";
+                if (side != Side.Update && port.Semantic.Length > 0 && Machine(port.Semantic))
+                {
+                    Outputs.TryAdd(port.Semantic, (port.Type, port.Condition));
+                    copy += $" {(side == Side.Vertex ? "vout" : "pout")}.{Member(port.Semantic).Member} = ({Stored(port.Type)})({port.Name});";
+                }
+                else if (port.Semantic.Length > 0 && !port.Semantic.StartsWith("SV_", StringComparison.Ordinal))
                 {
                     copy += $" {Semantic(port)} = {port.Name};";
                 }
@@ -531,6 +899,11 @@ public static class ParticleLinker
         /// <summary>A port no link feeds: its semantic's value, the shader's own input for an SV_ one, else nought (said).</summary>
         private string Unfed(Node node, ShaderPort port)
         {
+            if (side != Side.Update && Machine(port.Semantic))
+            {
+                return MachineInput(port);
+            }
+
             if (port.Semantic.StartsWith("SV_", StringComparison.Ordinal))
             {
                 return "sv_" + port.Semantic[3..];
@@ -547,6 +920,35 @@ public static class ParticleLinker
             }
 
             return $"({port.Type})0";
+        }
+
+        /// <summary>
+        /// A machine semantic read: a vertex shader's from the mesh (its vertex struct) or the system (its entry's parameters), a pixel shader's
+        /// from the struct the vertex shader wrote or the system - SV_POSITION being that struct's place, as POSITION is the vertex side's.
+        /// </summary>
+        private string MachineInput(ShaderPort port)
+        {
+            string upper = port.Semantic.ToUpperInvariant();
+            if (side == Side.Pixel && upper is "SV_POSITION" or "VPOS")
+            {
+                Inputs.TryAdd("SV_POSITION", ("float4", string.Empty));
+                return $"(({port.Type})pin.position)";
+            }
+
+            if (upper.StartsWith("SV_", StringComparison.Ordinal))
+            {
+                _system[port.Semantic] = port.Type;
+                return "sv_" + port.Semantic[3..];
+            }
+
+            if (upper == "VFACE")
+            {
+                _system["SV_IsFrontFace"] = "bool";
+                return "(sv_IsFrontFace ? 1.0f : -1.0f)";
+            }
+
+            Inputs.TryAdd(port.Semantic, (port.Type, port.Condition));
+            return $"(({port.Type})(vin.{Member(port.Semantic).Member}))".Replace("vin.", side == Side.Pixel ? "pin." : "vin.", StringComparison.Ordinal);
         }
 
         private string Semantic(ShaderPort port)
@@ -618,9 +1020,84 @@ public static class ParticleLinker
                 case NodeKind.Unknown:
                     return null;
                 default:
+                    if (side == Side.Pixel && SideOf(from) == Side.Vertex)
+                    {
+                        return Cross(graph, key, from, end.Variable) is { } crossing ? $"((({crossing.Type})pin.{crossing.Name})){swizzle}" : null;
+                    }
+
+                    if (side == Side.Vertex && SideOf(from) == Side.Pixel)
+                    {
+                        _unresolved.Add($"{from.Source.Type} ({Path.GetFileName(graphs[graph].Path)}) is the pixel shader's, read by the vertex shader: nought");
+                        return null;
+                    }
+
                     Emit(from);
+                    if (from.Kind == NodeKind.Fragment && from.Block is { } fragment
+                        && !fragment.Ports.Any(port => port.Name == end.Variable && port.Direction is "out" or "inout")
+                        && end.Variable.Contains("connection", StringComparison.Ordinal))
+                    {
+                        // EVERY NODE HAS A CONNECTION OUTPUT, ITS PLACE IN THE ORDER: base.fxgraph links VertexOutput's and PixelInput's
+                        // `connection` though neither fragment declares one - the generator's own; nought, the node run before.
+                        return "0.0f";
+                    }
+
                     return $"{from.Name}_{(from.Kind == NodeKind.Read ? "output" : end.Variable)}{swizzle}";
             }
+        }
+
+        /// <summary>
+        /// A local of a port's type: a value initialised to what it is fed or to nought; a texture or a sampler as the HLSL resource it is,
+        /// with the <c>_index</c> beside a texture the engine's source builder generates for its bindless textures ("in and out is generated in
+        /// shadersource builder", InputTexture) - nought, the tool drawing with Direct3D 11's bound textures.
+        /// </summary>
+        private static string Declare(string type, string name, string? value, string indent)
+        {
+            if (Resource(type) is not { } resource)
+            {
+                return $"{indent}{type} {name} = {value ?? $"({type})0"};";
+            }
+
+            string declared = value is null ? $"{indent}{resource} {name};" : $"{indent}{resource} {name} = {value};";
+            if (resource == "SamplerState")
+            {
+                return declared;
+            }
+
+            string index = value is not null && value.All(c => char.IsAsciiLetterOrDigit(c) || c == '_') ? value + "_index" : "0u";
+            return $"{declared} uint {name}_index = {index};";
+        }
+
+        /// <summary>The HLSL resource a port's engine type is, or null for a value.</summary>
+        private static string? Resource(string type) => type switch
+        {
+            "texture" => "Texture2D",
+            "texture3d" => "Texture3D",
+            "textureCube" => "TextureCube",
+            "sampler" => "SamplerState",
+            _ => null,
+        };
+
+        /// <summary>The crossing carrying a vertex node's output to this pixel shader, made the first time it is read.</summary>
+        private Crossing? Cross(int graph, string key, Node from, string variable)
+        {
+            string type = from.Kind == NodeKind.Read
+                ? from.Block!.Value("type")
+                : from.Block?.Ports.FirstOrDefault(port => port.Name == variable && port.Direction is "out" or "inout")?.Type ?? string.Empty;
+            if (type.Length == 0)
+            {
+                _unresolved.Add($"{from.Source.Type}.{variable} ({Path.GetFileName(graphs[graph].Path)}) crosses to the pixel shader with no type known: nought");
+                return null;
+            }
+
+            string name = $"AUTO_S_{from.Name}_{Safe(from.Kind == NodeKind.Read ? "output" : variable)}";
+            if (Crossings.Find(one => one.Name == name) is { } had)
+            {
+                return had;
+            }
+
+            var crossing = new Crossing(graph, key, from.Kind == NodeKind.Read ? "output" : variable, type, name);
+            Crossings.Add(crossing);
+            return crossing;
         }
 
         /// <summary>A node's own uniform as a local holding its parameter - the material's over the node's, else the declared default.</summary>
@@ -666,7 +1143,7 @@ public static class ParticleLinker
                 {
                     string global = $"res_{node.Name}_{uniform.Name}";
                     _resources.Add((global, uniform.Type == "sampler" ? "sampler (its name is a string the graph reader drops)" : said.Path.Length > 0 ? said.Path : "no texture named"));
-                    return $"#define {uniform.Name} {global}";
+                    return uniform.Type == "sampler" ? $"#define {uniform.Name} {global}" : $"#define {uniform.Name} {global}\n#define {uniform.Name}_index 0u";
                 }
 
                 default:
@@ -717,24 +1194,43 @@ public static class ParticleLinker
                 : [];
 
         /// <summary>The whole shader.</summary>
-        private LinkedShader Write()
+        /// <summary>The shader's text, with the other shader of the pass's fragment macros beside its own (<paramref name="shared"/>).</summary>
+        public LinkedShader Write(IEnumerable<string> shared)
         {
             var hlsl = new StringBuilder();
-            hlsl.Append("// The engine's GPU particle update, linked from its graphs by PoEformance's ParticleLinker.\n");
+            hlsl.Append(CultureInfo.InvariantCulture, $"// The engine's GPU particle {(side == Side.Update ? "update" : side == Side.Vertex ? "render pass's vertex shader" : "render pass's pixel shader")}, linked from its graphs by PoEformance's ParticleLinker.\n");
             foreach (string graph in graphs.Select(one => one.Path))
             {
                 hlsl.Append("//   ").Append(graph).Append('\n');
             }
 
             // MACROS: the update shader's, then every fragment's.
-            var macros = new Dictionary<string, string>(StringComparer.Ordinal)
+            var macros = new Dictionary<string, string>(StringComparer.Ordinal);
+            switch (side)
             {
-                ["COMPUTE_SHADER"] = string.Empty,
-                ["COMPUTE"] = string.Empty,
-            };
-            foreach (ShaderBlock fragment in _fragments)
+                case Side.Vertex:
+                    macros["VERTEX_SHADER"] = string.Empty;
+                    break;
+                case Side.Pixel:
+                    macros["PIXEL_SHADER"] = string.Empty;
+                    break;
+                default:
+                    macros["COMPUTE_SHADER"] = string.Empty;
+                    macros["COMPUTE"] = string.Empty;
+                    break;
+            }
+
+            foreach (string macro in passMacros)
             {
-                foreach (string macro in fragment.Macros)
+                int colon = macro.IndexOf(':', StringComparison.Ordinal);
+                macros[colon < 0 ? macro : macro[..colon]] = colon < 0 ? string.Empty : macro[(colon + 1)..];
+            }
+
+            // EVERY FRAGMENT'S, THE OTHER SHADER'S OF THE PASS TOO: the generator compiles one program of a pass's graphs, so a macro a vertex
+            // fragment declares (OutputVertexPosition's VERTEX_OUTPUT_POSITION) stands in the pixel shader, which reads world_position by it.
+            foreach (IReadOnlyList<string> macroList in _fragments.Select(fragment => fragment.Macros).Append([.. shared]))
+            {
+                foreach (string macro in macroList)
                 {
                     int colon = macro.IndexOf(':', StringComparison.Ordinal);
                     string name = colon < 0 ? macro : macro[..colon];
@@ -819,12 +1315,14 @@ public static class ParticleLinker
 
                 foreach (ShaderUniform uniform in block.Uniforms)
                 {
-                    if (uniform.Stages.Length > 0 && !uniform.Stages.Split('|').Contains("cs", StringComparer.Ordinal))
+                    if (uniform.Stages.Length > 0 && !uniform.Stages.Split('|').Contains(side switch { Side.Vertex => "vs", Side.Pixel => "ps", _ => "cs" }, StringComparer.Ordinal))
                     {
                         continue;
                     }
 
-                    if (named.Contains(uniform.Name) && uniforms.Add(uniform.Name))
+                    // A RENDER PASS DECLARES EVERY UNIFORM OF A PLAIN TYPE too: its sources' .hlsl includes read some (common.ffx's sh_atlas_size
+                    // by SHSampledAtlas.hlsl), which no identifier here names; an unused one costs nothing.
+                    if ((named.Contains(uniform.Name) || (side != Side.Update && Plain(uniform.Type))) && uniforms.Add(uniform.Name))
                     {
                         hlsl.Append(Guarded(uniform.Condition, GlobalUniform(uniform)));
                     }
@@ -843,8 +1341,43 @@ public static class ParticleLinker
                 hlsl.Append("static ").Append(type).Append(' ').Append(name).Append(";\n");
             }
 
-            hlsl.Append("\n[numthreads(GROUP_SIZE_X, GROUP_SIZE_Y, GROUP_SIZE_Z)]\n");
-            hlsl.Append(CultureInfo.InvariantCulture, $"void {UpdateEntry}(uint3 sv_DispatchThreadID : SV_DispatchThreadID, uint3 sv_GroupThreadID : SV_GroupThreadID, uint3 sv_GroupID : SV_GroupID, uint sv_GroupIndex : SV_GroupIndex)\n{{\n");
+            string entry;
+            if (side == Side.Update)
+            {
+                entry = UpdateEntry;
+                hlsl.Append("\n[numthreads(GROUP_SIZE_X, GROUP_SIZE_Y, GROUP_SIZE_Z)]\n");
+                hlsl.Append(CultureInfo.InvariantCulture, $"void {UpdateEntry}(uint3 sv_DispatchThreadID : SV_DispatchThreadID, uint3 sv_GroupThreadID : SV_GroupThreadID, uint3 sv_GroupID : SV_GroupID, uint sv_GroupIndex : SV_GroupIndex)\n{{\n");
+            }
+            else
+            {
+                // THE STRUCT BETWEEN THE SHADERS, written once both are linked (Render), and this shader's own: the mesh's vertex for the
+                // vertex shader, the targets for the pixel shader.
+                hlsl.Append('\n').Append(InterstagePlace).Append('\n');
+                string own = side == Side.Vertex ? "VertexIn" : "PixelOut";
+                hlsl.Append("struct ").Append(own).Append("\n{\n");
+                var written = new HashSet<string>(StringComparer.Ordinal);
+                foreach ((string semantic, (string type, string condition)) in side == Side.Vertex ? Inputs : Outputs)
+                {
+                    (string member, string bound) = Member(semantic);
+                    if (written.Add(member))
+                    {
+                        hlsl.Append(Guarded(condition, $"    {Stored(type)} {member} : {(side == Side.Vertex ? semantic : bound)};"));
+                    }
+                }
+
+                if (written.Count == 0)
+                {
+                    hlsl.Append(side == Side.Vertex ? "    uint unused : SV_VertexID;\n" : "    float4 target_none : SV_Target0;\n");
+                }
+
+                hlsl.Append("};\n");
+                IEnumerable<string> system = _system.Select(one => $"{one.Value} sv_{one.Key[3..]} : {one.Key}");
+                entry = side == Side.Vertex ? VertexEntry : PixelEntry;
+                string input = side == Side.Vertex ? "VertexIn vin" : "Interstage pin";
+                hlsl.Append(CultureInfo.InvariantCulture, $"\n{(side == Side.Vertex ? "Interstage" : "PixelOut")} {entry}({string.Join(", ", system.Prepend(input))})\n{{\n");
+                hlsl.Append(side == Side.Vertex ? "    Interstage vout = (Interstage)0;\n" : "    PixelOut pout = (PixelOut)0;\n");
+            }
+
             foreach (ShaderBlock block in _extensions.Values)
             {
                 string type = block.Value("type");
@@ -859,8 +1392,14 @@ public static class ParticleLinker
                 hlsl.Append('\n');
             }
 
-            hlsl.Append(_main).Append("}\n");
-            return new LinkedShader(hlsl.ToString(), UpdateEntry, [.. _unresolved], _resources, _emitted, _fragments.Count, declared.Count, _tracks);
+            hlsl.Append(_main);
+            if (side != Side.Update)
+            {
+                hlsl.Append(side == Side.Vertex ? "    return vout;\n" : "    return pout;\n");
+            }
+
+            hlsl.Append("}\n");
+            return new LinkedShader(hlsl.ToString(), entry, [.. _unresolved], _resources, _emitted, _fragments.Count, declared.Count, _tracks);
         }
 
         private void Declare(string name, List<ShaderBlock> declared, HashSet<string> seen)
@@ -913,6 +1452,10 @@ public static class ParticleLinker
             return $"{hlsl} {uniform.Name};";
         }
 
+        /// <summary>Whether a uniform's type is one HLSL knows without the engine's own structs: a scalar, a vector, a matrix, a texture or a sampler.</summary>
+        private static bool Plain(string type)
+            => Width(type) > 0 || Resource(type) is not null || type is "texture2darray" || (type.Length == 8 && type.StartsWith("float", StringComparison.Ordinal) && type[6] == 'x');
+
         /// <summary>Every identifier a piece of code names.</summary>
         private static void Identifiers(string code, HashSet<string> into)
         {
@@ -938,7 +1481,7 @@ public static class ParticleLinker
         }
 
         /// <summary>A line inside the preprocessor lines it stood inside where written.</summary>
-        private static string Guarded(string condition, string line)
+        internal static string Guarded(string condition, string line)
         {
             if (condition.Length == 0)
             {

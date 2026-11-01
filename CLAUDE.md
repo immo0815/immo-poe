@@ -1414,6 +1414,21 @@ Metadata/EngineGraphs/base.fxgraph. The engine's generator writes a ShaderOut st
 vertices through vts_mesh_buffer (FetchVertex_<semantic>), names cross-stage values AUTO_S_%s_%s, and returns PIXEL_RETURN_SEMANTIC_COLOR
 (its template strings, module+0x3193388 to +0x3195030 of the build of 2026-10-27, read offline from program-code.bin). So v0.1.439's particles
 part also walks base.fxgraph and writes every .ffx source of the install whole - one capture to link a render pass from offline.
+THE RENDER PASSES ARE LINKED (v0.1.440, `ParticleLinker.Render`, over v0.1.439's capture of 21:49): each pass's vertex and pixel shader
+from its graphs, the pixel one first - what it reads of a vertex node crosses as an interpolant (`AUTO_S_<node>_<output>`, not interpolated
+for an integer or a boolean) the vertex shader then writes - both sharing one struct (`Interstage`), a machine semantic (POSITION, TEXCOORDn,
+COLORn, INSTANCEID, SV_*, PIXEL_RETURN_SEMANTIC_*) the shader's own input or output, every other semantic a variable the fragments share;
+an extension point's own `read:`/`write:` code run over its ports (surface_data's AlbedoColor); a texture port a Texture2D with the
+`_index` the engine's bindless builder adds (nought, as CommonDeclarations.inc's DX11 path); the pass's macros OUTPUT_COLOR and HAS_LIGHTING
+(a graph saying `lighting_disabled` leaves the second out). READ FROM THE GRAPHS: a render shader's outputs are the nodes of its side NOTHING
+READS - base.fxgraph's VertexOutputPosition (POSITION and INSTANCEID), render_default's OutputVertexColor (the colour into semantics_data),
+and OutputVertexPosition, OutputVertexTBN and OutputVertexUV, a macro alone (VERTEX_OUTPUT_POSITION...) every output's port stands under;
+the first link wrote no position until they ran. A side-less writer of a semantic hanging on the pixel side is not the vertex shader's
+(render_default's SetRandomSeed #1). CHOSEN, said in the shader: a node of no side runs in the shader reading it; an output node at the latest
+stage of what it reads, after that stage's reads and before its writes; POSITION and VPOS are SV_Position; the named targets the colour 0,
+the motion vector, the GI's light and normals 1 to 3. All eight of the lamp's render shaders compile under DXC (vs_6_0, ps_6_0) and the
+updates are unchanged to the byte; particles.txt compiles each through FXC at vs_5_0 and ps_5_0 (`ParticleCompile.ProfileOf`). Left:
+TileGroundUVs' scroll fed by no link, a Spline5's Smooth key baked straight, and a sampler's name the graph reader drops.
 
 ## Verify against the game, not against yourself
 

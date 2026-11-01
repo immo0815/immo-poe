@@ -314,5 +314,155 @@ public class ParticleLinkerTests
         Assert.Null(ShaderPrelude.Find(Encoding.ASCII.GetBytes("#define DX11\n no groupshared here\0")));
     }
 
+    /// <summary>
+    /// A render pass in the engine's grammar: a vertex-only mesh read, base.fxgraph's kind of outputs - a macro alone, a position and instance
+    /// written under it, a colour written into a shared struct at its stage - a node of no side and a pixel output, none of which links on.
+    /// </summary>
+    private const string RenderSource = """
+        DECLARATIONS tints
+        {{
+        	struct TintData { float4 tint; };
+        }}
+
+        FRAGMENT MeshPosition
+        	cost: free
+        	vertex
+        	in float3 pos : POSITION
+        	out float3 output
+        {{
+        	output = pos * 2.0f;
+        }}
+
+        FRAGMENT OutputVertexPosition
+        	cost: free
+        	vertex
+        	macro VERTEX_OUTPUT_POSITION
+        {{
+        }}
+
+        FRAGMENT VertexOutputPosition
+        	cost: free
+        	vertex
+        	in float3 position
+        #ifdef VERTEX_OUTPUT_POSITION
+        	out float4 clip : POSITION
+        #endif
+        	out uint instance_id : INSTANCEID
+        {{
+        #ifdef VERTEX_OUTPUT_POSITION
+        	clip = float4(position, 1.0f);
+        #endif
+        	instance_id = 7;
+        }}
+
+        FRAGMENT OutputTint
+        	cost: free
+        	vertex
+        	include tints
+        	in float4 input
+        	inout TintData tintData : tint_data
+        {{
+        	tintData.tint = input;
+        }}
+
+        FRAGMENT Shade
+        	cost: free
+        	in float3 a
+        	in uint instance : INSTANCEID
+        	out float4 output
+        {{
+        	output = float4(a, float(instance));
+        }}
+
+        FRAGMENT OutputColor
+        	cost: free
+        	pixel
+        	in float4 color
+        	in float4 screen : SV_POSITION
+        	out float4 result : PIXEL_RETURN_SEMANTIC_COLOR
+        {{
+        	result = color * screen.w;
+        }}
+
+        EXTENSIONPOINT Tint
+        	group Vertex
+        	vertex
+        	type float4
+        	generate: {{ value = float4(1.0f, 1.0f, 1.0f, 1.0f); }}
+        """;
+
+    [Fact]
+    public void ARENDERPassSplitsIntoTheTwoShadersAndRunsTheOutputsNothingReads()
+    {
+        ShaderGraph graph = Graph("""
+            { "nodes": [
+                { "type": "MeshPosition", "index": 0 },
+                { "type": "OutputVertexPosition", "index": 0 },
+                { "type": "VertexOutputPosition", "index": 0 },
+                { "type": "InputTint", "index": 0, "stage": "VertexOutput_Final" },
+                { "type": "OutputTint", "index": 0 },
+                { "type": "InputTint", "index": 1, "stage": "VertexOutput_Pass" },
+                { "type": "Tint", "index": 0, "stage": "VertexOutput_Pass" },
+                { "type": "Shade", "index": 0 },
+                { "type": "OutputColor", "index": 0 } ],
+              "links": [
+                { "src": { "type": "MeshPosition", "index": 0, "variable": "output" }, "dst": { "type": "VertexOutputPosition", "index": 0, "variable": "position" } },
+                { "src": { "type": "InputTint", "index": 0, "stage": "VertexOutput_Final", "variable": "output" }, "dst": { "type": "OutputTint", "index": 0, "variable": "input" } },
+                { "src": { "type": "InputTint", "index": 1, "stage": "VertexOutput_Pass", "variable": "output" }, "dst": { "type": "Tint", "index": 0, "stage": "VertexOutput_Pass", "variable": "input" } },
+                { "src": { "type": "MeshPosition", "index": 0, "variable": "output" }, "dst": { "type": "Shade", "index": 0, "variable": "a" } },
+                { "src": { "type": "Shade", "index": 0, "variable": "output" }, "dst": { "type": "OutputColor", "index": 0, "variable": "color" } } ] }
+            """);
+        (LinkedShader vertex, LinkedShader pixel) = ParticleLinker.Render(ShaderSource.Of([("render.ffx", RenderSource)]),
+            [new LinkedGraph("r.fxgraph", graph, new Dictionary<string, ShaderValue[]>())], "#define DX11", ["OUTPUT_COLOR"]);
+        string vs = vertex.Hlsl, ps = pixel.Hlsl;
+
+        // THE OUTPUTS NOTHING READS RUN: the macro alone defines VERTEX_OUTPUT_POSITION in both shaders, before the prelude, so the position
+        // is written; the instance crosses to the pixel shader that reads it.
+        foreach (string hlsl in new[] { vs, ps })
+        {
+            Assert.True(hlsl.IndexOf("#define VERTEX_OUTPUT_POSITION", StringComparison.Ordinal) is >= 0 and var at && at < hlsl.IndexOf("#define DX11", StringComparison.Ordinal), hlsl);
+            Assert.Contains("float4 position : SV_Position;", hlsl, StringComparison.Ordinal);
+            Assert.Contains("nointerpolation uint instanceid : INSTANCEID;", hlsl, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("#define VERTEX_SHADER", vs, StringComparison.Ordinal);
+        Assert.Contains("#define PIXEL_SHADER", ps, StringComparison.Ordinal);
+        Assert.Contains("Interstage VertexMain(VertexIn vin", vs, StringComparison.Ordinal);
+        Assert.Contains("PixelOut PixelMain(Interstage pin", ps, StringComparison.Ordinal);
+        Assert.Contains("float3 pos = ((float3)(vin.position));", vs, StringComparison.Ordinal);
+        Assert.Contains("vout.position = (float4)(clip);", vs, StringComparison.Ordinal);
+        Assert.Contains("vout.instanceid = (uint)(instance_id);", vs, StringComparison.Ordinal);
+        Assert.Contains("uint instance = ((uint)(pin.instanceid));", ps, StringComparison.Ordinal);
+
+        // A LEAF RUNS AT THE LATEST STAGE OF WHAT IT READS: after its read at VertexOutput_Final, before the write at VertexOutput_Pass.
+        int read = vs.IndexOf("InputTint @VertexOutput_Final", StringComparison.Ordinal);
+        int leaf = vs.IndexOf("// OutputTint #0", StringComparison.Ordinal);
+        int write = vs.IndexOf("Tint @VertexOutput_Pass, r.fxgraph", StringComparison.Ordinal);
+        Assert.True(read >= 0 && read < leaf && leaf < write, vs);
+
+        // EACH NODE IN ITS SHADER: the vertex-only mesh read crosses to the pixel shader's node of no side, interpolated.
+        Assert.Matches(@"vout\.(AUTO_S_n0_\d+_output) = \(float3\)\(n0_\d+_output\); // to the pixel shader", vs);
+        Assert.Matches(@"float3 a = \(\(\(float3\)pin\.AUTO_S_n0_\d+_output\)\);", ps);
+        Assert.DoesNotContain("// Shade #0", vs, StringComparison.Ordinal);
+        Assert.DoesNotContain("// OutputColor #0", vs, StringComparison.Ordinal);
+        Assert.DoesNotContain("// MeshPosition #0", ps, StringComparison.Ordinal);
+        Assert.Contains("float4 screen = ((float4)pin.position);", ps, StringComparison.Ordinal);
+        Assert.Contains("float4 target_PIXEL_RETURN_SEMANTIC_COLOR : SV_Target0;", ps, StringComparison.Ordinal);
+        Assert.Contains("pout.target_PIXEL_RETURN_SEMANTIC_COLOR = (float4)(result);", ps, StringComparison.Ordinal);
+        Assert.Empty(vertex.Unresolved);
+        Assert.Empty(pixel.Unresolved);
+    }
+
+    [Fact]
+    public void AMACHINESemanticIsTheShadersOwnInputOrOutputAndASharedOneIsNot()
+    {
+        Assert.True(ParticleLinker.Machine("TEXCOORD5"));
+        Assert.True(ParticleLinker.Machine("SV_InstanceID"));
+        Assert.True(ParticleLinker.Machine("PIXEL_RETURN_SEMANTIC_COLOR"));
+        Assert.False(ParticleLinker.Machine("semantics_data"));
+        Assert.False(ParticleLinker.Machine("PARTICLE_ID"));
+        Assert.False(ParticleLinker.Machine("G_InstanceID"));
+    }
+
     private static ShaderGraph Graph(string json) => ShaderGraph.Read(Encoding.UTF8.GetBytes(json));
 }
