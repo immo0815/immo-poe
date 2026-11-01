@@ -135,7 +135,7 @@ public sealed class AgentLinkTests : IDisposable
             return Task.FromResult<string?>(name == "echo" ? "brought the game's window to the front" : null);
         };
         JsonElement brought = (await Rpc("tools/call", """{"name":"echo","arguments":{"text":"hello"}}""")).GetProperty("result").GetProperty("content");
-        Assert.Equal("brought the game's window to the front", brought[0].GetProperty("text").GetString());
+        Assert.Equal("brought the game's window to the front\n", brought[0].GetProperty("text").GetString());
         Assert.Equal("echo: hello", brought[1].GetProperty("text").GetString());
 
         JsonElement quiet = (await Rpc("tools/call", """{"name":"picture"}""", 2)).GetProperty("result").GetProperty("content");
@@ -145,7 +145,7 @@ public sealed class AgentLinkTests : IDisposable
         _link.Before = _ => throw new InvalidOperationException("no window");
         JsonElement failed = (await Rpc("tools/call", """{"name":"echo","arguments":{"text":"still"}}""", 3)).GetProperty("result");
         Assert.False(failed.GetProperty("isError").GetBoolean());
-        Assert.Equal("before the call: InvalidOperationException: no window", failed.GetProperty("content")[0].GetProperty("text").GetString());
+        Assert.Equal("before the call: InvalidOperationException: no window\n", failed.GetProperty("content")[0].GetProperty("text").GetString());
         Assert.Equal("echo: still", failed.GetProperty("content")[1].GetProperty("text").GetString());
         Assert.Equal(["echo", "picture"], asked);
     }

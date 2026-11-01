@@ -2351,10 +2351,12 @@ in 100 s, so a call that runs longer than 40 s is answered as pending (`structur
   sends anything to the game.
 - EVERY CALL BRINGS THE GAME'S WINDOW TO THE FRONT FIRST where another window is (v0.1.412, asked for from the live client, 2026-11-01:
   "from now on you bring the PoE2 window to the front yourself, before you do anything"): `AgentLink.Before`, the overlay's `AgentFront`,
-  on the render thread (`GameWindowTracker.BringToFront`: a minimised game restored, the render thread's input joined to the window in
+  on the render thread (`GameWindowTracker.Raise`: a minimised game restored, the render thread's input joined to the window in
   front for the moment - AttachThreadInput - then BringWindowToTop and SetForegroundWindow). NO KEY IS SENT: the usual trick presses Alt,
-  and Alt held in the game shows its items' labels. What it did opens the call's answer and goes to overlay.log; the tool `front` does it
-  alone. The game's own other windows count as the game.
+  and Alt held in the game shows its items' labels. Whether it came is looked at OFF the render thread for up to half a second
+  (`GameWindowTracker.Settled`, CHOSEN): v0.1.412 looked once, straight after, found no window in front at all while Windows handed the
+  activation on, and said the game had not come when it had (MEASURED through the agent link). What it did opens the call's answer on a
+  line of its own and goes to overlay.log; the tool `front` does it alone. The game's own other windows count as the game.
 - SET UP ONCE: the About page's "agent link" - "on", then "copy key" into the cloud environment's settings as `POEF_AGENT_KEY` (never into
   a chat), then a new cloud session (environment variables and `.mcp.json` are read at a session's start). "renew key" makes the old one
   useless at once. The tool runs only while the game does (Main ends without a game process), so the link does too.

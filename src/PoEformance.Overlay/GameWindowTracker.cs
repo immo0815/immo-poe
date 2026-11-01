@@ -224,12 +224,26 @@ public static partial class GameWindowTracker
         return (who, foreground, processId);
     }
 
-    /// <summary>What <see cref="BringToFront"/> came to: whether the game is in front now, whether it had to be brought, and what to say.</summary>
+    /// <summary>What bringing the game forward came to: whether the game is in front now, whether it had to be brought, and what to say.</summary>
     public readonly record struct Brought(bool InFront, bool Moved, string Said);
 
+    /// <summary>What <see cref="Raise"/> did: who was in front and through which window, and whether that window's input was joined.</summary>
+    public readonly record struct Raised(Front Was, IntPtr Window, bool Joined)
+    {
+        /// <summary>True when the game was in front already, so nothing was done.</summary>
+        public bool Already => Was is Front.Game or Front.GameElsewhere;
+    }
+
+    /// <summary>How long Windows is given to hand the front on before the game is said not to have come (CHOSEN).</summary>
+    public static readonly TimeSpan SettleWithin = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>How often the foreground is looked at while it settles (CHOSEN).</summary>
+    private static readonly TimeSpan SettleStep = TimeSpan.FromMilliseconds(15);
+
     /// <summary>
-    /// Brings the game's window to the front where another window is - the game's own other windows count as the game. Call it on a
-    /// thread with a message queue (the render thread): AttachThreadInput fails on one without.
+    /// Brings the game's window to the front where another window is - the game's own other windows count as the game; null where no
+    /// game window is followed. Call it on a thread with a message queue (the render thread): AttachThreadInput fails on one without.
+    /// Whether it came is <see cref="Settled"/>'s to say, off that thread.
     /// </summary>
     /// <remarks>
     /// ASKED FOR FROM THE LIVE CLIENT (2026-11-01): the agent link brings the game to the front before every call, so a capture or a
@@ -238,18 +252,18 @@ public static partial class GameWindowTracker
     /// front for the moment of the call (AttachThreadInput), which Windows takes as the right to hand the front on. A minimised game is
     /// restored first.
     /// </remarks>
-    public static Brought BringToFront()
+    public static Raised? Raise()
     {
         IntPtr game = Game;
         if (game == IntPtr.Zero)
         {
-            return new Brought(false, false, "no game window is followed");
+            return null;
         }
 
         (Front who, IntPtr front, _) = InFront(game);
         if (who is Front.Game or Front.GameElsewhere)
         {
-            return new Brought(true, false, "the game was in front");
+            return new Raised(who, front, false);
         }
 
         if (IsIconic(game))
@@ -273,10 +287,48 @@ public static partial class GameWindowTracker
             }
         }
 
-        (Front now, IntPtr after, _) = InFront(game);
-        return now is Front.Game or Front.GameElsewhere
-            ? new Brought(true, true, $"brought the game's window to the front ({who} was, 0x{front:X})")
-            : new Brought(false, false, $"Windows did not bring the game's window to the front: 0x{after:X} is ({now}, {(joined ? "its input joined" : "its input not joined")})");
+        return new Raised(who, front, joined);
+    }
+
+    /// <summary>
+    /// Whether the game came to the front after <see cref="Raise"/>, looked at for up to <see cref="SettleWithin"/> - on any thread but
+    /// the render thread, which it would hold still.
+    /// </summary>
+    /// <remarks>
+    /// MEASURED (v0.1.412, through the agent link): ONE look straight after SetForegroundWindow found no window in front at all (0x0)
+    /// while the game had come - Windows names no foreground while one window loses the activation and the next takes it - and the call
+    /// said the game had not come.
+    /// </remarks>
+    public static async Task<Brought> Settled(Raised? raised)
+    {
+        if (raised is not { } did)
+        {
+            return new Brought(false, false, "no game window is followed");
+        }
+
+        if (did.Already)
+        {
+            return new Brought(true, false, "the game was in front");
+        }
+
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        while (true)
+        {
+            (Front now, IntPtr after, _) = InFront(Game);
+            if (now is Front.Game or Front.GameElsewhere)
+            {
+                return new Brought(true, true, $"brought the game's window to the front ({did.Was} was, 0x{did.Window:X})");
+            }
+
+            TimeSpan waited = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+            if (waited >= SettleWithin)
+            {
+                return new Brought(false, false, $"Windows did not bring the game's window to the front within {waited.TotalMilliseconds:0} ms: "
+                    + $"0x{after:X} is ({now}, {(did.Joined ? "its input joined" : "its input not joined")}; {did.Was} was, 0x{did.Window:X})");
+            }
+
+            await Task.Delay(SettleStep).ConfigureAwait(false);
+        }
     }
 
     /// <summary>True when the game is the window the user is actually looking at.</summary>
