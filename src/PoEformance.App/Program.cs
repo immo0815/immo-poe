@@ -3898,6 +3898,25 @@ internal static class Program
                 () => codeCopy?.Fraction ?? 0f,
                 () => codeCopy?.Stop()));
 
+        // THE CLOTH AS IT RUNS: the physics objects found by their parameters' tail, their particles and the world's containers - see ClothLive.
+        // Past the tap: a sweep of memory belongs in no recording.
+        PoEformance.Game.Diagnostics.ClothLive.Running? clothLive = null;
+        overlay.OfferCaptureWork(
+            PoEformance.Features.CaptureParts.ClothLive,
+            _ =>
+            {
+                var running = new PoEformance.Game.Diagnostics.ClothLive.Running();
+                clothLive = running;
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                return untapped is PoEformance.Core.Memory.IMemoryRegions regions
+                    ? PoEformance.Game.Diagnostics.ClothLive.Run(untapped, regions, [], running)
+                    : ["cloth live: the reader cannot list the game's memory"];
+            },
+            new PoEformance.Overlay.CaptureWorkProgress(
+                () => clothLive?.Line ?? "starting",
+                () => clothLive?.Fraction ?? 0f,
+                () => clothLive?.Stop()));
+
         // NEEDS NO INSTALL: it reads memory rather than the game's files. The one thing it needs is
         // the loaded-file table.
         overlay.OfferCaptureWork(PoEformance.Features.CaptureParts.RoomPlacements, _ =>

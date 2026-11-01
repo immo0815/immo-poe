@@ -77,6 +77,7 @@ public static class CaptureMonsterFiles
         List<Swept> his = Animations(body, model, actor, unpacking, sockets);
         Sockets(body, actor, sockets, his);
         int played = Pieces(body, read, actor, unpacking, his);
+        Cloth(body, read, [.. pane.Variety?.AoFiles ?? [], .. actor.Fitted.Where(part => !part.Lost).Select(part => part.File)]);
         int seen = Entities(body, pane.Path, entities, player);
         var textures = new List<(string File, byte[] Bytes)>();
         int effects = Effects(body, read, pane, actor, textures);
@@ -770,6 +771,128 @@ public static class CaptureMonsterFiles
             int parent = bone < rest.Parents.Count ? rest.Parents[bone] : -1;
             Vector3 place = bone < rest.BindModel.Count ? rest.BindModel[bone].Translation : default;
             body.Append(Invariant($"  bone\t{bone}\t{rig.Bones[bone].Name}\t{(parent >= 0 && parent < rig.Bones.Count ? rig.Bones[parent].Name : "-")}\t{At(place)}")).AppendLine();
+        }
+    }
+
+    /// <summary>The most simulation vertices, triangles and pinned numbers written for one part - CHOSEN; all are counted.</summary>
+    private const int MostClothRecords = 256;
+
+    /// <summary>How near a phys_ bone's bind a simulation vertex must rest to be taken as standing on it - CHOSEN.</summary>
+    private const float OnBone = 0.5f;
+
+    /// <summary>
+    /// Each file's cloth as the engine builds it: the simulation mesh in its .smd's tail - every vertex with its four bones by name and
+    /// weights, whether it is pinned, and the phys_ bone of the file's own rig its rest stands nearest - the triangles and pinned vertices,
+    /// the collision spheres, capsules and ellipsoids, and the simulation its ClientAnimationController names as the engine reads it
+    /// (ClothSettings, defaults starred). The body's own files first, then every part's.
+    /// </summary>
+    /// <remarks>
+    /// ASKED FOR (v0.1.420, chains, cloth and hair decided from the live client): the engine's cloth is a mesh of particles, not the phys_
+    /// bones the render mesh is skinned to - so which bone a particle drives, if any, is to be read off where they rest, side by side.
+    /// </remarks>
+    internal static void Cloth(StringBuilder body, Func<string, byte[]?>? read, IEnumerable<string> files)
+    {
+        body.AppendLine().AppendLine("=== the cloth: each file's simulation mesh (its .smd's tail - SimulationMesh) and its simulation as the engine reads it (ClothSettings; a star marks the engine's default)");
+        if (read is null)
+        {
+            body.AppendLine("(no install to read them from)");
+            return;
+        }
+
+        var done = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string file in files)
+        {
+            if (file.Length == 0 || !done.Add(file))
+            {
+                continue;
+            }
+
+            (AnimationSkeleton rig, string rigPath, SkinnedMesh mesh, Dictionary<string, string> keys) = MonsterModels.Cloth(read, file);
+            SimulationMesh cloth = mesh.Simulation;
+            ClothSettings settings = ClothSettings.Of(keys, out IReadOnlyList<string> unknown);
+            body.Append("--- ").Append(file).Append(Invariant(
+                $": its mesh {(mesh.Ready ? $"{mesh.Positions.Length} vertices" : "not read")}, tail version {cloth.TailVersion}, {cloth.Vertices.Count} simulation vertices, {cloth.Triangles.Count / 3} triangles, {cloth.Pinned.Count} pinned, {cloth.Spheres.Count} spheres, {cloth.Connections.Count} capsules, {cloth.Ellipsoids.Count} ellipsoids{(cloth.Why.Length > 0 ? " - " + cloth.Why : string.Empty)}; its rig {(rigPath.Length > 0 ? rigPath : "(none)")}")).AppendLine();
+            if (keys.Count > 0)
+            {
+                body.Append("  simulation: ").AppendLine(settings.Say());
+                if (unknown.Count > 0)
+                {
+                    body.Append("  keys the engine's parsers do not name: ").AppendLine(string.Join(", ", unknown));
+                }
+            }
+
+            SkeletonPose? rest = rig.Ready ? SkeletonPose.Of(rig) : null;
+            var phys = new List<(int Bone, Vector3 At)>();
+            if (rest is not null)
+            {
+                for (var bone = 0; bone < rig.Bones.Count; bone++)
+                {
+                    if (rig.Bones[bone].Name.StartsWith(PhysicsBone, StringComparison.OrdinalIgnoreCase))
+                    {
+                        phys.Add((bone, rest.BindModel[bone].Translation));
+                    }
+                }
+            }
+
+            if (cloth.Vertices.Count > 0)
+            {
+                var pinned = new HashSet<int>(cloth.Pinned);
+                var standing = new HashSet<int>();
+                int on = 0;
+                body.AppendLine("  vertex\tat rest\tbones (weight)\tpinned\tthe nearest phys_ bone of its rig at bind (distance)");
+                for (var one = 0; one < cloth.Vertices.Count; one++)
+                {
+                    SimulationVertex vertex = cloth.Vertices[one];
+                    (int Bone, Vector3 At) nearest = phys.Count == 0 ? (-1, default) : phys.MinBy(bone => Vector3.Distance(bone.At, vertex.Position));
+                    float distance = nearest.Bone >= 0 ? Vector3.Distance(nearest.At, vertex.Position) : float.NaN;
+                    if (distance <= OnBone)
+                    {
+                        on++;
+                        standing.Add(nearest.Bone);
+                    }
+
+                    if (one < MostClothRecords)
+                    {
+                        var weighted = new StringBuilder();
+                        for (var each = 0; each < 4; each++)
+                        {
+                            float weight = each switch { 0 => vertex.Weights.X, 1 => vertex.Weights.Y, 2 => vertex.Weights.Z, _ => vertex.Weights.W };
+                            int bone = vertex.Bones[each];
+                            if (weight != 0f)
+                            {
+                                weighted.Append(Invariant($"{(bone >= 0 && bone < rig.Bones.Count ? rig.Bones[bone].Name : $"#{bone}")} ({weight:0.###}) "));
+                            }
+                        }
+
+                        body.Append(Invariant($"  vertex\t{one}\t{At(vertex.Position)}\t{weighted.ToString().TrimEnd()}\t{(pinned.Contains(one) ? "pinned" : "-")}\t{(nearest.Bone >= 0 ? $"{rig.Bones[nearest.Bone].Name} ({distance:0.###})" : "-")}")).AppendLine();
+                    }
+                }
+
+                body.Append(Invariant($"  {on} of {cloth.Vertices.Count} vertices rest within {OnBone} of a phys_ bone's bind; {standing.Count} of the rig's {phys.Count} phys_ bones have one on them")).AppendLine();
+                body.Append(Invariant($"  triangles, {cloth.Triangles.Count / 3}:"));
+                for (var one = 0; one + 2 < cloth.Triangles.Count && one < MostClothRecords * 3; one += 3)
+                {
+                    body.Append(Invariant($" {cloth.Triangles[one]}-{cloth.Triangles[one + 1]}-{cloth.Triangles[one + 2]}"));
+                }
+
+                body.AppendLine();
+                body.Append("  pinned: ").AppendLine(string.Join(' ', cloth.Pinned.Take(MostClothRecords)));
+            }
+
+            foreach (SimulationSphere sphere in cloth.Spheres)
+            {
+                body.Append(Invariant($"  sphere\t{sphere.Name}\t{At(sphere.Centre)}\tradius {sphere.Radius:0.###}\t{sphere.Unknown}")).AppendLine();
+            }
+
+            foreach ((int from, int to) in cloth.Connections)
+            {
+                body.Append(Invariant($"  capsule\t{from}\t{to}")).AppendLine();
+            }
+
+            foreach (SimulationEllipsoid ellipsoid in cloth.Ellipsoids)
+            {
+                body.Append(Invariant($"  ellipsoid\t{ellipsoid.Name}\t{string.Join(' ', ellipsoid.Floats.Select(one => one.ToString("G6", CultureInfo.InvariantCulture)))}\t{ellipsoid.Unknown}")).AppendLine();
+            }
         }
     }
 

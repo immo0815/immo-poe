@@ -232,6 +232,9 @@ public static class CaptureParts
     /// <summary>The game's program image whole, with where the bone simulation's keys and words stand in it and what reads them - off until ticked; see ProgramCode.</summary>
     public const string ProgramCode = "program-code";
 
+    /// <summary>The engine's cloth as it runs: its physics objects found in memory, their particles and the world's containers - see ClothLive.</summary>
+    public const string ClothLive = "cloth-live";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -263,7 +266,7 @@ public static class CaptureParts
     /// </remarks>
     public static bool RunsAtPress(string key)
         => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook or BoneWatch
-            or AoSimulations or ProgramCode;
+            or AoSimulations or ProgramCode or ClothLive;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -703,6 +706,12 @@ public static class CaptureParts
             + "the table's order, those from the vertex shader to the pixel shader by the ends' types (InputVertexUV read at VertexInit "
             + "by a pixel stage's texture, which keeps the zone transitions' light white), and every write of the coordinates with what "
             + "feeds it: what compiling the vertex stages waits on. Seconds, past the recording; press it anywhere."),
+        new(ClothLive, "Memory", "cloth as it runs", CaptureReport.ClothLiveFile,
+            "The engine's cloth - robes, capes, hair, chains - as it runs, for stepping it the game's way: every physics object of a "
+            + "ClientAnimationController found in memory by its parameters' tail (max velocity, scale, gravity), read whole - its parameters, "
+            + "particles with their animated targets, depths and parents, triangles with their rest lengths, edges, constraints and pinned "
+            + "particles - its particles read twice a moment apart, and the physics world's containers they live in with their vtables, "
+            + "searched for where they keep each particle's place. Seconds, past the recording; press it anywhere, best with cloth on you."),
         new(ProgramCode, "Memory", "the program's code (100 MB)", CaptureReport.ProgramCodeFile,
             "The game's program as it runs, for reading the engine's own code offline: its image written whole beside the report "
             + "(program-code.bin, byte n at module+n), its sections and function table, and every string naming a ClientAnimationController "

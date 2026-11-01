@@ -162,6 +162,9 @@ public static class CaptureReport
     /// <summary>The program's image whole beside it, and where the bone simulation's keys and words stand in it - see ProgramCode.</summary>
     public const string ProgramCodeFile = "program-code.txt";
 
+    /// <summary>The engine's cloth physics objects found in memory, their particles and the world's containers - see ClothLive.</summary>
+    public const string ClothLiveFile = "cloth-live.txt";
+
     /// <summary>The survey of the entity maps for the rooms' doodads, and every sighting.</summary>
     public const string DoodadsFile = "doodads.txt";
 
