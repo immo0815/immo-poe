@@ -13,7 +13,8 @@ namespace PoEformance.Overlay;
 /// has had no console for a while: every line written to standard error, the frame's own failures
 /// among them, went nowhere. The file outlives the process, and the one before it is kept as
 /// <see cref="PreviousName"/> when the next starts, so the session that was killed is still there
-/// after the restart - and a capture writes both (CaptureParts.OverlayLog).
+/// after the restart - and a capture writes them all (CaptureParts.OverlayLog). From v0.1.438 the
+/// <see cref="Kept"/> sessions before it are kept, older ones as overlay.previous-2.log and on.
 ///
 /// SMALL BY DESIGN: a line per change - Present's answer, the game leaving the front and coming back,
 /// a stalled frame - never one per frame, and past <see cref="Ceiling"/> one line saying the rest was
@@ -26,6 +27,19 @@ public static class OverlayLog
 
     /// <summary>The session before's, kept when the next one starts.</summary>
     public const string PreviousName = "overlay.previous.log";
+
+    /// <summary>
+    /// How many sessions before this one are kept: the one before as <see cref="PreviousName"/>, older ones as
+    /// <c>overlay.previous-2.log</c> and on - CHOSEN.
+    /// </summary>
+    /// <remarks>
+    /// MORE THAN ONE (v0.1.438): the tool went down after a capture, was started again while the game still ran, and then both went
+    /// down; the session that held the capture was two starts back by the time anybody looked, and its log was gone.
+    /// </remarks>
+    public const int Kept = 4;
+
+    /// <summary>The file of the session <paramref name="back"/> starts before this one (1 the one before).</summary>
+    public static string NameBack(int back) => back <= 1 ? PreviousName : $"overlay.previous-{back}.log";
 
     /// <summary>How much one session writes at most.</summary>
     private const long Ceiling = 2 * 1024 * 1024;
@@ -74,14 +88,21 @@ public static class OverlayLog
     }
 
     /// <summary>
-    /// Both files whole, this session's first - what a capture writes. Empty where neither exists.
+    /// Every file whole, this session's first, then the ones before it newest first - what a capture writes.
     /// </summary>
     public static string Text()
     {
         var text = new StringBuilder();
-        foreach ((string name, string said) in new[] { (FileName, "this session"), (PreviousName, "the session before") })
+        IEnumerable<(string Name, string Said)> files = new[] { (FileName, "this session"), (PreviousName, "the session before") }
+            .Concat(Enumerable.Range(2, Kept - 1).Select(back => (NameBack(back), $"{back} sessions before")));
+        foreach ((string name, string said) in files)
         {
             string path = Path.Combine(AppContext.BaseDirectory, name);
+            if (name != FileName && name != PreviousName && !File.Exists(path))
+            {
+                continue;
+            }
+
             text.Append("== ").Append(said).Append(" (").Append(name).AppendLine(") ==");
             try
             {
@@ -110,6 +131,16 @@ public static class OverlayLog
             string path = Path.Combine(AppContext.BaseDirectory, FileName);
             if (File.Exists(path))
             {
+                // THE OLDER ONES MOVED ON FIRST, the oldest kept dropped.
+                for (int back = Kept; back >= 2; back--)
+                {
+                    string older = Path.Combine(AppContext.BaseDirectory, NameBack(back - 1));
+                    if (File.Exists(older))
+                    {
+                        File.Move(older, Path.Combine(AppContext.BaseDirectory, NameBack(back)), overwrite: true);
+                    }
+                }
+
                 File.Move(path, Path.Combine(AppContext.BaseDirectory, PreviousName), overwrite: true);
             }
 

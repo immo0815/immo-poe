@@ -213,6 +213,9 @@ public static class CaptureReport
     /// <summary>The overlay's own log, both sessions - see CaptureParts.OverlayLog.</summary>
     public const string OverlayLogFile = "overlay-log.txt";
 
+    /// <summary>The crashes Windows wrote down - see CaptureParts.Crashes.</summary>
+    public const string CrashesFile = "crashes.txt";
+
     /// <summary>The loaded-file table's sweep for its count field.</summary>
     public const string CountFieldFile = "count-field.txt";
 

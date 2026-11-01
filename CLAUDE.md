@@ -2643,6 +2643,17 @@ went wrong is the one that was killed - and a capture writes both (`overlay-log.
 changing any of this: the line as the game came back says whether the window was shown, on top, and what
 Present said.
 
+THE TOOL AND THE GAME WENT DOWN AFTER A CAPTURE AND NOTHING SAID WHY (said from the live client, 2026-11-01, after the
+particle emitters part's press of 20:42 with `particles` ticked): the tool first - its restart at 20:48:55 found the game's
+process still running - then the game. The tool caught no exception it did not expect, wrote nothing as it ended, and kept one
+log before its own, which the second restart overwrote. Its cause is NOT KNOWN. From v0.1.438: an exception no code catches, and
+one a task dropped, go into `overlay.log` before the process ends (Main); four sessions before this one are kept
+(`overlay.previous.log`, then `overlay.previous-2.log` and on, `OverlayLog.Kept`), a capture writing them all; and the `crashes` part
+(`crashes.txt`, `CaptureCrashes`, the Windows group) reads Windows' Application log through wevtutil - Application Error (1000: the
+faulting module, the exception code and offset), Windows Error Reporting (1001), Application Hang (1002) and .NET Runtime (1026) of
+the last fortnight naming the tool or the game - which a native fault, a fail-fast or a stack overflow leaves where no code of the
+process could write. Take a capture with it after any crash before guessing at one.
+
 ## The agent link
 
 A CLAUDE SESSION IN THE CLOUD USES THE TOOL ON THE PLAYER'S OWN PC (asked for from the live client, 2026-11-01: take the captures it
