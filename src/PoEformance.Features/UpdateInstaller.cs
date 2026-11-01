@@ -68,6 +68,7 @@ public sealed class UpdateInstaller : IDisposable
     private readonly string _install;
     private readonly string _executable;
     private readonly CancellationTokenSource _closing = new();
+    private readonly Lock _beginning = new();
 
     private HttpClient? _http;
 
@@ -131,15 +132,29 @@ public sealed class UpdateInstaller : IDisposable
     /// <summary>What the restart needs, once <see cref="Step"/> is <see cref="UpdateStep.Ready"/>.</summary>
     public UpdatePlan? Plan { get; private set; }
 
-    /// <summary>Starts fetching a release in the background.</summary>
+    /// <summary>Starts fetching a release in the background - <see cref="Step"/> is <see cref="UpdateStep.Downloading"/> when this returns.</summary>
+    /// <remarks>
+    /// THE STEP IS SET HERE, BEFORE THE TASK IS STARTED, not left to the task to say once it runs. Left to it, the step stayed
+    /// <see cref="UpdateStep.Idle"/> - or a past attempt's Ready or Failed - for as long as the thread pool took to start it, and a
+    /// caller waiting for the download to end read that as its end: the agent link's update tool waits for Ready, Failed or Idle, and
+    /// answered "the download did not finish: Idle" the moment after asking for it (seen from a cloud session on 2026-11-01, v0.1.405 to
+    /// v0.1.407; asking for the download first and the install after got round it). Under a lock, so two asks at once - a button and the
+    /// agent link - start one download between them, not two writing one archive.
+    /// </remarks>
     public void Begin(ReleaseInfo release, BuildStamp remote)
     {
         ArgumentNullException.ThrowIfNull(release);
         ArgumentNullException.ThrowIfNull(remote);
 
-        if (Step is UpdateStep.Downloading or UpdateStep.Extracting)
+        lock (_beginning)
         {
-            return;
+            if (Step is UpdateStep.Downloading or UpdateStep.Extracting)
+            {
+                return;
+            }
+
+            Step = UpdateStep.Downloading;
+            Status = "downloading";
         }
 
         _ = Task.Run(() => RunAsync(release, remote, _closing.Token));

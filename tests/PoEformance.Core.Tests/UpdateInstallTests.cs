@@ -100,6 +100,49 @@ public sealed class UpdateInstallTests
         }
     }
 
+    /// <summary>
+    /// A download asked for is under way the moment it is asked for - not once its task gets round to saying so - so a caller waiting
+    /// for its end does not take the step before it for the end (the agent link's update tool answered "the download did not finish:
+    /// Idle" so); and asking again while it runs starts no second download.
+    /// </summary>
+    [Fact]
+    public async Task ADOWNLOADAskedForIsUnderWayBeforeItsTaskRuns()
+    {
+        string root = Scratch();
+        try
+        {
+            byte[] archive = GoodBuild();
+            var served = new TaskCompletionSource<Stream?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            int[] opened = [0];
+            using var installer = new UpdateInstaller(
+                folder: Path.Combine(root, "update"),
+                install: Path.Combine(root, "installed"),
+                executable: Path.Combine(root, "installed", "PoEformance.App.exe"),
+                open: (_, _) =>
+                {
+                    Interlocked.Increment(ref opened[0]);
+                    return served.Task;
+                });
+
+            installer.Begin(ReleaseOf(archive), Remote);
+            Assert.Equal(UpdateStep.Downloading, installer.Step);
+            installer.Begin(ReleaseOf(archive), Remote);
+
+            served.SetResult(new MemoryStream(archive));
+            for (long until = Environment.TickCount64 + 10_000; installer.Step is not (UpdateStep.Ready or UpdateStep.Failed) && Environment.TickCount64 < until;)
+            {
+                await Task.Delay(20);
+            }
+
+            Assert.Equal(UpdateStep.Ready, installer.Step);
+            Assert.Equal(1, Volatile.Read(ref opened[0]));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task AShortDownloadIsAFailedDownloadAndNotASmallBuild()
     {
