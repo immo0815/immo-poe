@@ -17,7 +17,20 @@ public sealed record LinkedGraph(string Path, ShaderGraph Graph, IReadOnlyDictio
 /// <param name="Nodes">How many nodes were emitted.</param>
 /// <param name="Fragments">How many distinct fragments their code came from.</param>
 /// <param name="Declarations">How many declarations were included.</param>
-public sealed record LinkedShader(string Hlsl, string Entry, IReadOnlyList<string> Unresolved, IReadOnlyList<(string Name, string Filled)> Resources, int Nodes, int Fragments, int Declarations);
+/// <param name="Tracks">
+/// The curves the shader's splineGrayscale and splineColour uniforms name, by their index in the engine's <c>spline_lut</c> buffer - a curve's
+/// keys as its node or material writes them; the drawing bakes each into the buffer's row of that index (color_spline_data's SplineLUTSample
+/// reads <c>LUT_WIDTH</c> values a row, two halves to a word).
+/// </param>
+public sealed record LinkedShader(
+    string Hlsl,
+    string Entry,
+    IReadOnlyList<string> Unresolved,
+    IReadOnlyList<(string Name, string Filled)> Resources,
+    int Nodes,
+    int Fragments,
+    int Declarations,
+    IReadOnlyList<CurveKey[]>? Tracks = null);
 
 /// <summary>
 /// Links the engine's GPU particle update shader from its graphs as the engine's graph compiler does: every node's FRAGMENT taken word for word
@@ -199,6 +212,7 @@ public static class ParticleLinker
         private readonly StringBuilder _main = new();
         private readonly SortedSet<string> _unresolved = new(StringComparer.Ordinal);
         private readonly List<(string Name, string Filled)> _resources = [];
+        private readonly List<CurveKey[]> _tracks = [];
         private readonly Dictionary<string, ShaderBlock> _extensions = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _semantics = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Node>> _semanticWriters = new(StringComparer.Ordinal);
@@ -613,6 +627,12 @@ public static class ParticleLinker
                     return $"spline5 {uniform.Name}; {uniform.Name}.segment_polynom[0] = {p(0)}; {uniform.Name}.segment_polynom[1] = {p(1)}; {uniform.Name}.segment_polynom[2] = {p(2)}; {uniform.Name}.segment_polynom[3] = {p(3)}; {uniform.Name}.time_variance = float4({Number(tv[0])}, {Number(tv[1])}, {Number(tv[2])}, {Number(tv[3])});";
                 }
 
+                // A CURVE OF THE GRAPH EDITOR IS A ROW OF THE ENGINE'S SPLINE LUT: color_spline_data reads splineGrayscale as one int (the row,
+                // nought or more; under nought reads nought) and splineColour as an int4 of rows, R G B A. Each curve gets a row of its own.
+                case "splineGrayscale":
+                    return $"int {uniform.Name} = {Track(said, "A", node)};";
+                case "splineColour":
+                    return $"int4 {uniform.Name} = int4({Track(said, "R", node)}, {Track(said, "G", node)}, {Track(said, "B", node)}, {Track(said, "A", node)});";
                 case "texture" or "texture3d" or "textureCube" or "sampler":
                 {
                     string global = $"res_{node.Name}_{uniform.Name}";
@@ -646,6 +666,19 @@ public static class ParticleLinker
                     return $"{uniform.Type} {uniform.Name} = {uniform.Type}({string.Join(", ", values)});";
                 }
             }
+        }
+
+        /// <summary>The spline LUT row a curve's channel is given - a new row a channel the parameter writes, -1 (read as nought) where it writes none.</summary>
+        private int Track(ShaderValue said, string channel, Node node)
+        {
+            if (said.Curves?.GetValueOrDefault(channel) is not { Length: > 0 } keys)
+            {
+                _unresolved.Add($"{node.Source.Type} ({Path.GetFileName(graphs[node.Graph].Path)}) writes no curve for {channel}: read as nought");
+                return -1;
+            }
+
+            _tracks.Add(keys);
+            return _tracks.Count - 1;
         }
 
         /// <summary>A node uniform's declared default: its fourth quoted word (label, least, most, default), split on spaces.</summary>
@@ -785,7 +818,7 @@ public static class ParticleLinker
             }
 
             hlsl.Append(_main).Append("}\n");
-            return new LinkedShader(hlsl.ToString(), UpdateEntry, [.. _unresolved], _resources, _emitted, _fragments.Count, declared.Count);
+            return new LinkedShader(hlsl.ToString(), UpdateEntry, [.. _unresolved], _resources, _emitted, _fragments.Count, declared.Count, _tracks);
         }
 
         private void Declare(string name, List<ShaderBlock> declared, HashSet<string> seen)

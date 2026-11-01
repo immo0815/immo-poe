@@ -239,6 +239,38 @@ public class ParticleLinkerTests
     }
 
     [Fact]
+    public void ACURVEOfTheGraphEditorIsGivenARowOfTheSplineLut()
+    {
+        const string curves = """
+            FRAGMENT SplineGrayscale
+            	cost: expensive
+            	uniform splineGrayscale constant_trackG "value"
+            	out splineGrayscale output
+            {{
+            	output = constant_trackG;
+            }}
+
+            EXTENSIONPOINT ParticlesUpdate::Track
+            	group ParticlesUpdate
+            	compute
+            	type int
+            	generate: {{}}
+            """;
+        ShaderGraph graph = Graph("""
+            { "nodes": [
+                { "type": "SplineGrayscale", "index": 0, "parameters": [ { "A": { "points": [ { "time": 0.0, "value": 1.0, "type": "Linear" }, { "time": 1.0, "value": 0.0, "type": "Linear" } ] } } ] },
+                { "type": "ParticlesUpdate::Track", "index": 0, "stage": "ParticlesUpdate" } ],
+              "links": [
+                { "src": { "type": "SplineGrayscale", "index": 0, "variable": "output" }, "dst": { "type": "ParticlesUpdate::Track", "index": 0, "stage": "ParticlesUpdate", "variable": "input" } } ] }
+            """);
+        LinkedShader linked = ParticleLinker.Update(ShaderSource.Of([("curves.ffx", curves)]), [new LinkedGraph("c.fxgraph", graph, new Dictionary<string, ShaderValue[]>())], "#define DX11");
+
+        CurveKey[] row = Assert.Single(linked.Tracks!);
+        Assert.Equal([new CurveKey(0f, 1f, "Linear"), new CurveKey(1f, 0f, "Linear")], row);
+        Assert.Contains("int constant_trackG = 0;", linked.Hlsl, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ASPLINEOfStraightKeysIsBakedAsTheirLines()
     {
         (float[] polynoms, float[] tv) = ParticleLinker.Spline([new CurveKey(0f, 2f, "Linear"), new CurveKey(0.5f, 4f, "Linear"), new CurveKey(1f, 0f, "Linear")], 0.2f);

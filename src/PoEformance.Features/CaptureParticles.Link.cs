@@ -98,6 +98,12 @@ public static partial class CaptureParticles
                     body.Append("  unresolved\t").AppendLine(open);
                 }
 
+                IReadOnlyList<CurveKey[]> tracks = shader.Tracks ?? [];
+                for (var t = 0; t < tracks.Count; t++)
+                {
+                    body.Append(CultureInfo.InvariantCulture, $"  track\t{t}\t{string.Join(" ", tracks[t].Select(key => string.Create(CultureInfo.InvariantCulture, $"{key.Time:0.###}:{key.Value:0.###}{(key.Kind is { Length: > 0 } kind && kind != "Linear" ? "/" + kind : string.Empty)}")))}").AppendLine();
+                }
+
                 foreach ((string name, string filled) in shader.Resources)
                 {
                     body.Append("  resource\t").Append(name).Append('\t').AppendLine(filled);
