@@ -3631,17 +3631,25 @@ internal static class Program
                 () => wobble?.Stop()));
 
         // THE BONE WATCH: how the engine swings what hangs on a physics bone (the Exile's Staff's lantern), read from memory for seconds from
-        // the press while the player moves - see BoneWatch. Past the tap, as the wobble watch reads; its reads go beside its file.
+        // the press while the player moves - see BoneWatch. Past the tap, as the wobble watch reads; its reads go beside its file. With an
+        // install, each piece's own skeleton is first found in the whole of memory by its rest (PoseHunt) and watched with the rest.
         PoEformance.Game.Diagnostics.BoneWatch? bones = null;
         overlay.OfferCaptureWork(
             PoEformance.Features.CaptureParts.BoneWatch,
             path =>
             {
-                var probe = new PoEformance.Game.Diagnostics.BoneWatch(
-                    reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader, schema);
+                PoEformance.Core.Memory.IMemoryReader untapped = reader is PoEformance.Core.Memory.TapMemoryReader tapped ? tapped.Untapped : reader;
+                var probe = new PoEformance.Game.Diagnostics.BoneWatch(untapped, schema);
                 bones = probe;
                 string? folder = Path.GetDirectoryName(path);
-                return probe.Run(gameStatesStatic, folder is null ? null : Path.Combine(folder, PoEformance.Game.Diagnostics.BoneWatchSeries.File));
+                Func<string, IReadOnlyList<PoEformance.Game.Diagnostics.PoseRig>>? rigsOf = installed is null
+                    ? null
+                    : piece => PoEformance.Features.PieceRigs.Of(file => PoEformance.Game.Files.GameArt.ReadRaw(installed, file), piece);
+                return probe.Run(
+                    gameStatesStatic,
+                    folder is null ? null : Path.Combine(folder, PoEformance.Game.Diagnostics.BoneWatchSeries.File),
+                    rigsOf,
+                    untapped as PoEformance.Core.Memory.IMemoryRegions);
             },
             new PoEformance.Overlay.CaptureWorkProgress(
                 () => bones?.Line ?? "starting",

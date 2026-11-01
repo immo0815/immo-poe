@@ -411,7 +411,7 @@ internal sealed class CaptureKey
 
         // THE PANES AS THEY STAND, their models immutable - the files they name are read with the rest, off this thread.
         if ((On(CaptureParts.ModelPanes) || On(CaptureParts.MonsterFiles) || On(CaptureParts.LightCompare) || On(CaptureParts.ShadowCasters) || On(CaptureParts.LightExtras)
-                || On(CaptureParts.RoofFade))
+                || On(CaptureParts.RoofFade) || On(CaptureParts.Particles))
             && _panes is { } panes)
         {
             run.Panes = panes();
@@ -1247,6 +1247,24 @@ internal sealed class CaptureKey
                     }
 
                     return text[..text.IndexOf('\n')];
+                });
+            }
+        }
+
+        // THE PARTICLES: every effect the panes' monsters name, their graphs and the engine's, and the sources defining their nodes.
+        if (On(CaptureParts.Particles))
+        {
+            if (read is null)
+            {
+                Not(CaptureReport.ParticlesFile, "no install to read the effects, graphs and sources from");
+            }
+            else
+            {
+                Part(CaptureReport.ParticlesFile, () =>
+                {
+                    string text = CaptureParticles.Write(read, run.Panes, engineGraphs, shaders);
+                    File.WriteAllText(At(CaptureReport.ParticlesFile), text);
+                    return text[..text.IndexOf('\n')].TrimEnd('\r');
                 });
             }
         }

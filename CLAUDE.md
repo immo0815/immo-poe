@@ -984,6 +984,39 @@ ShadeOmni, the card holding them in its scene constants (`Carried`, `Glow.y` the
 `phys_tri_lamp_jntBnd`, no position line, colour 2.4671 0.493 0.0398, radius 150, penumbra_dist 0.5 - read as every room light's a is
 (PointShape). NOT DRAWN: the bone's own physics (the lamp's swing, bone-watch measures it first), the flame's particles, spot lights, the
 rigs' own mesh lights, an animation event switching a light's state.
+WHAT v0.1.403'S CAPTURE SAID OF THE FLAME AND THE SWING (2026-11-01 03:27, Clearfell Encampment), and what was DECIDED from the live client:
+- THE FLAME IS THE ENGINE'S GPU PARTICLES: lamp.pet holds three `gpu_emitters` - embers (ember_01_U/_R.mat, 16 to 24 a pool, 0.5 to 1.5 s,
+  a burst of 45.8, facing Velocity_Camera), the flame itself (lamp_flame_U.mat, 8 to 16, groups of 8 on `mp_pRibbon_LOD4.fmt` - ribbons -
+  two render passes, the second optional) and a shimmer (lamp_shimmer_U.mat, 5 to 7, locked to the bone, Camera_Fixed). Each emitter's
+  update material is a chain of graphs run in the particle stages (ParticlesSetup to ParticlesWriteFinal, shader-stages.txt's order) over
+  the engine's gpuparticles.ffx; the lifetime, emission and integration are the engine's own graphs (Metadata/EngineGraphs/GpuParticles/:
+  update_base, lifetime_default, integrate, spawn and on); what is the processor's alone is each emitter's data (ParticleEmitterData: its
+  time, transform, flags, bones). DECIDED: the engine's particle system built generically - every effect's update graphs compiled for the
+  card and simulated there, its render graphs drawn - on the card alone, the processor's picture saying it leaves them out. Of the 721 node
+  types the particle graphs of that capture use, 719 are defined in sources earlier captures hold (render-debug.txt's gpuparticles.ffx,
+  gputrails.ffx, utilitynodes.ffx and on, light-extras.txt's and water.txt's), `<Group>` is the graph's own grouping, and
+  ActorVisualSizeInformation is defined in none of them.
+- THE SWING WAS NOT FOUND: the bone watch's 48 blocks held the body's bones, the robe's ten swinging in step every 3.2 s and each piece's
+  placement four times over (schema `PieceObject`, `PiecePlacement`), but no array of the staff's 19 bones - ranked by changing turns, a
+  weapon moving one bone fell behind the body. DECIDED: measure it by looking for it.
+SO v0.1.404 MEASURES BOTH BEFORE EITHER IS BUILT:
+- THE BONE WATCH FINDS EACH PIECE'S SKELETON BY ITS REST (`PoseHunt`, `PieceRigs`): his body's rig and every piece's and of what each hangs
+  off itself are looked for in the whole of memory - each rig's most telling fixed bones (CHOSEN: 12, three coordinates off nought first)
+  as needles of one FloatHunt sweep on every core, in their PARENTS' frame (an animation turning the bones keeps their lengths) and the
+  MODEL's (a rigid piece at rest keeps all of it), laid side by side or sixteen bytes apart; each place votes for where bone nought would
+  lie at every stride, an address three bones agree on is read and kept where half its fixed bones stand at their rest (CHOSEN); one array
+  found in both frames is kept in the one whose simulated bones stand nearer their rest, the nearer the piece's object first (a town's other
+  players wield the same staff). The arrays found are watched with the blocks and his place (Render.CurrentWorldPosition), thirty times a
+  second; `PoseSwing` finds where their records keep the turns and which way round, which bones moved, and each phys_ bone's swing on its
+  parent by its place (a pendulum's way) and its turn - signed along its main axis, its period by the autocorrelation and by its turning
+  points, and its decrement from the swings' heights a period apart (δ, the damping ratio δ / sqrt(4π² + δ²); heights, not distances from a
+  mean, so a lantern settling off its rest measures true) - beside his speed. bone-watch.bin is version 2 (the skeletons with their rigs
+  whole, his place); version 1 still replays.
+- `particles.txt` (`CaptureParticles`, the Windows group): every particle effect the panes' monsters and their parts name, each emitter read
+  out, the materials' graphs and the engine's particle graphs whole with what the compile makes of each node, where every node is defined
+  (a FRAGMENT, the EXTENSIONPOINT an Input node reads) and every DECLARATIONS block those include, through every include - those sources
+  whole. `particles-replay.txt` compiles the graphs again offline.
+Take a capture with the staff in hand, OUT OF TOWN: press, and once the window says to, walk, stop and turn a few times.
 
 ## Verify against the game, not against yourself
 
