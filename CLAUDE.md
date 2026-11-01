@@ -1337,6 +1337,21 @@ COMPUTE_PHYSIC from a table (module+0x459B070; which the update takes not read -
 linked update through FXC cs_5_0 on the Windows build (`ParticleCompile.Fxc`, includes expanded by `ParticleLinker.Expanded`) - the profile
 the tool draws with; press it with the staff in hand before the dispatch is built. NEXT: the emitter's data (time, bone, transform) from the
 swung lamp, the dispatch on the card, the render passes linked the same way, all on the card alone.
+FXC COMPILES ALL THREE (v0.1.431's capture of 18:47, the staff in hand): cs_5_0, 90,472, 80,028 and 63,108 bytes of bytecode, nothing
+missing from the includes. WHAT THE DISPATCH MUST BE HANDED is the processor's, and the update says what it reads: per emitter a 160-byte
+`ParticleEmitterData` (schema; CommonDeclarations.inc's struct - the scale and its inverse now and last frame, the rotations, the translations,
+time and prev_time, the speeds, the dead time and fade-out, the lock flags, the bones as start << 8 | count, the culling tag holding the group
+size, the lock condition and the emitter flags IS_ALIVE, IS_INFINITE, IS_NEW, TELEPORTED, IS_VISIBLE, PAUSED, NO_SUBFRAME and their kin, and
+particles_start), the buffers (the particle pool and its index, the emitter records, emitter_bones_data, spline_lut, scene_infos, the culling
+buffers, the heightmap and the fog and flow maps), and globals of its own (gpu_particle_emitter - the record's index - gpu_particle_seed,
+_count, _burst, gpu_particles_duration, frame_delta_time, instance_count, batch_size). Their meanings are in the shaders; their VALUES are
+in no file. The engine's processor side is GpuParticles::Impl (schema `GpuParticlesImpl`: its frame as Job2 lambdas, buckets of 0x110-byte
+emitter entities at +0x60A0), but where it fills the records was not found statically, so v0.1.432 MEASURES THEM: `particle-emitters.txt`
+(`ParticleEmitterHunt`, the Memory group, OFF UNTIL TICKED) sweeps the game's memory on every core for records whose scale stands beside its
+exact inverse twice and whose rotations are unit quaternions (`FloatHunt.Scan`, a sweep by the caller's own test), then the driver's upload
+heaps for at most a minute (the card's copy may stand only there); writes the runs of them 160 bytes apart (the arrays), the 96 nearest the
+player decoded field by field with their bytes, and watches the 32 nearest for three seconds - every read that differs, which fields
+changed; `particle-emitters-replay.txt` decodes the records again. Press it with the staff in hand, standing still, before the dispatch is built.
 
 ## Verify against the game, not against yourself
 

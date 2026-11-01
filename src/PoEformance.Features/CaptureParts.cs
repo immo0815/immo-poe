@@ -238,6 +238,9 @@ public static class CaptureParts
     /// <summary>The engine's cloth near the player frame by frame, and the tool's stepped against it - off until ticked; see ClothWatch.</summary>
     public const string ClothWatch = "cloth-watch";
 
+    /// <summary>The engine's GPU particle emitters as the processor hands them to the card, found in memory and watched - off until ticked; see ParticleEmitterHunt.</summary>
+    public const string ParticleEmitters = "particle-emitters";
+
     /// <summary>The memory recording itself.</summary>
     public const string Memory = "memory";
 
@@ -269,7 +272,7 @@ public static class CaptureParts
     /// </remarks>
     public static bool RunsAtPress(string key)
         => key is CountField or RoomsInside or RoomsExported or RoomPlacements or Wobble or OceanMarkup or RiverFlow or ShaderStages or PlayerLook or BoneWatch
-            or AoSimulations or ProgramCode or ClothLive or ClothWatch;
+            or AoSimulations or ProgramCode or ClothLive or ClothWatch or ParticleEmitters;
 
     /// <summary>
     /// A heading as the Keys page writes it. The headings themselves stay as they are: they are what <see cref="FolderOfGroup"/> keys
@@ -724,6 +727,17 @@ public static class CaptureParts
             + "against the tool's cloth of the same piece, where the Monster Book shows you (take the player first). Some twenty megabytes, so OFF "
             + "UNTIL TICKED. PRESS THE KEY AND STAND STILL while the window's banner is amber; at the high tone it turns green - A FEW STEPS, "
             + "THEN STAND COMPLETELY STILL until the low tone.")
+        {
+            OffByDefault = true,
+        },
+        new(ParticleEmitters, "Memory", "particle emitters as the card gets them", CaptureReport.ParticleEmittersFile,
+            "The engine's GPU particle emitters - a staff's flame, embers and shimmer, every effect round you - as the processor hands them to "
+            + "the card each frame, for running the particles' update shaders the game's way: every ParticleEmitterData record (160 bytes: the "
+            + "scale and its inverse, the rotation, the translation, the time and the last time, the speeds, the dead time, the lock flags, the "
+            + "bones, the culling tag with the emitter flags, the first particle's index) found in the game's memory by how its fields agree - "
+            + "a scale beside its inverse, two unit quaternions - then in the driver's upload heaps for at most a minute; the runs of them "
+            + "(the arrays the card reads), the nearest you decoded field by field, and those watched for three seconds. Up to a minute and a "
+            + "half on every core, so OFF UNTIL TICKED; past the recording; press it with the effect on screen, best standing still.")
         {
             OffByDefault = true,
         },
