@@ -423,6 +423,68 @@ public sealed class AnimationSkeleton
             TracksAt = TracksAt,
             Why = Why,
             Riders = carried,
+            Swung = Swung,
+        };
+    }
+
+    /// <summary>
+    /// How many bones at the end of this rig no animation drives - each a bone the tool swings itself (<see cref="Swinging"/>, BoneSwing).
+    /// Nought for a rig as its file has it.
+    /// </summary>
+    public int Swung { get; private init; }
+
+    /// <summary>
+    /// This rig with a bone after all of its own and its riders' for each one given - a child of the bone named, bound so that it rests at
+    /// the model's origin and follows its parent rigidly (its skin matrix its parent's in every pose), which no animation names and whose
+    /// skin matrix the tool sets itself after a pose (SkeletonPose.Override): a piece's lamp swinging as the engine's simulation swings it
+    /// (BoneSwing). Null where the bones would pass <see cref="MostBones"/> or the tree does not hold together.
+    /// </summary>
+    /// <remarks>
+    /// LAST, AFTER THE RIDERS, so a rider's first bone keeps its number; and counted (<see cref="Swung"/>), so <see cref="Played"/> keeps
+    /// this rig's own tracks to its own bones - a rig's light tracks are numbered straight after its bones, and would otherwise land on them.
+    /// A CHILD OF ITS PARENT, bound by the inverse of the parent's rest, so whatever takes a pose without swinging it - a capture's sweep of
+    /// every animation - finds the lamp hanging from the hand as authored, not standing where the bind pose left it.
+    /// </remarks>
+    public AnimationSkeleton? Swinging(IReadOnlyList<(string Name, int Under)> swung)
+    {
+        ArgumentNullException.ThrowIfNull(swung);
+        if (swung.Count == 0)
+        {
+            return this;
+        }
+
+        if (Bones.Count + swung.Count > MostBones || SkeletonPose.Of(this) is not { } rest)
+        {
+            return null;
+        }
+
+        var bones = new List<SkeletonBone>(Bones.Count + swung.Count);
+        bones.AddRange(Bones);
+        foreach ((string name, int under) in swung)
+        {
+            if (under < 0 || under >= Bones.Count)
+            {
+                return null;
+            }
+
+            Matrix4x4 bind = Matrix4x4.Invert(rest.BindModel[under], out Matrix4x4 undo) ? undo : Matrix4x4.Identity;
+
+            // FIRST AMONG ITS PARENT'S CHILDREN, the children it had after it.
+            bones.Add(new SkeletonBone(name, bones[under].Child, -1, bind));
+            bones[under] = bones[under] with { Child = bones.Count - 1 };
+        }
+
+        return new AnimationSkeleton(this)
+        {
+            Version = Version,
+            Lights = Lights,
+            LightBytes = LightBytes,
+            Bones = bones,
+            Animations = Animations,
+            TracksAt = TracksAt,
+            Why = Why,
+            Riders = Riders,
+            Swung = Swung + swung.Count,
         };
     }
 
@@ -445,12 +507,12 @@ public sealed class AnimationSkeleton
         }
 
         AnimationTracks own = AnimationTracks.Read(frames, one.Tracks, Version);
-        if (!own.Ready || Riders.Count == 0)
+        if (!own.Ready || (Riders.Count == 0 && Swung == 0))
         {
             return own;
         }
 
-        int host = Bones.Count - Riders.Sum(rider => rider.Rig.Bones.Count);
+        int host = Bones.Count - Riders.Sum(rider => rider.Rig.Bones.Count) - Swung;
         AnimationTracks joined = own.Mine(host);
         foreach ((AnimationSkeleton rider, int first) in Riders)
         {

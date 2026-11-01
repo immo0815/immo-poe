@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
 using PoEformance.Game.Entities;
 using PoEformance.Game.Files;
@@ -224,6 +225,15 @@ public sealed record MonsterModel(
 
     /// <summary>What reading those came to, for the line under a lit picture - see CarriedLights.Gathering.Made; empty where the files name none.</summary>
     public string CarriedSaid { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The bones of his pieces the tool swings as the engine's simulation swings them - each a bone appended to <see cref="Rig"/>, see
+    /// <see cref="BoneSwing"/> and MonsterModel's Swaying. Empty where none of his pieces carries the measured simulation.
+    /// </summary>
+    public IReadOnlyList<BoneSwing> Swings { get; init; } = [];
+
+    /// <summary>What became of his pieces' simulated bones - swung, or why not - for the line under the picture; empty where none has one.</summary>
+    public string SwingSaid { get; init; } = string.Empty;
 
     /// <summary>Where a stage stood its monster and the floor it found there - see <see cref="StageStanding"/>; null for anything but a staged monster.</summary>
     public StageStanding? Standing { get; init; }
@@ -929,9 +939,12 @@ public static class MonsterModels
         // THE LIGHTS HE CARRIES ON HIS BONES, his own first and each piece's as it is hung - see CarriedLights.
         var lamps = new CarriedLights.Gathering(counted);
         lamps.Body(found.Files, rig);
+
+        // AND THE BONES OF HIS RIGID PIECES THE ENGINE SWINGS, where it swings them as measured - see Swaying.
+        var swaying = new Swaying(counted);
         if (wearing)
         {
-            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding, pieces ?? [], covering, lamps));
+            parts.AddRange(Dressing(counted, found.Files, rig, paints, skin, told, riding, pieces ?? [], covering, lamps, swaying));
         }
 
         // HIS OWN SHAPES HIS PIECES HIDE - a body armour's Body_Seg, the gloves' fingers - off the body and its sections alike (PieceHiding).
@@ -955,6 +968,8 @@ public static class MonsterModels
             rig = carrying;
         }
 
+        // THE SWUNG BONES AFTER EVERY OTHER, their pieces' vertices and lights put on them - before the lights are made and the mesh is joined.
+        (rig, IReadOnlyList<BoneSwing> swings, string swingSaid) = swaying.Made(rig, lamps);
         (IReadOnlyList<CarriedLight> carried, string carriedSaid) = lamps.Made(rig);
 
         // THE MONSTER WITHOUT WHAT HE IS WEARING, taken BEFORE the join and kept - see
@@ -1017,6 +1032,8 @@ public static class MonsterModels
             ShapeMaterials = dress.ShapeMaterials,
             Carried = carried,
             CarriedSaid = carriedSaid,
+            Swings = swings,
+            SwingSaid = swingSaid,
         };
     }
 
@@ -1247,7 +1264,8 @@ public static class MonsterModels
         Riding riding,
         IReadOnlyList<WornPiece> worn,
         Covering covering,
-        CarriedLights.Gathering lamps)
+        CarriedLights.Gathering lamps,
+        Swaying swaying)
     {
         var parts = new List<Part>();
         if (SkeletonPose.Of(parent) is not { } rest)
@@ -1356,7 +1374,7 @@ public static class MonsterModels
             // THE PIECE IS READ BEFORE ITS CHILDREN ARE QUEUED, because what it turns into IS the
             // rig they are authored against - see Fit. The order parts come out in is the order
             // they are dequeued, which this does not change.
-            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body, riding, lamps);
+            (Part? part, Fit inner_, PartFit fit) = Worn(read, ao, one_, paints, fallback, body, riding, lamps, swaying);
             told.Add(fit);
 
             // EVERY PIECE THE GAME WEARS HIDES WHAT IT HIDES, drawn here or not - a held piece left out still covers what it covers there.
@@ -2272,7 +2290,8 @@ public static class MonsterModels
         Mipmaps? fallback,
         Fit body,
         Riding riding,
-        CarriedLights.Gathering lamps)
+        CarriedLights.Gathering lamps,
+        Swaying swaying)
     {
         (_, Matrix4x4 place, int bone, Matrix4x4 put, int socket, _, _, bool rooted, Fit fit) = hung;
 
@@ -2328,9 +2347,9 @@ public static class MonsterModels
         // focus at L_Weapon, his cape at Back - none of their own rigs is matched against his.
         if (hung.Held)
         {
-            (byte[] held, byte[] heldWeights) = Bound(mesh.Positions.Length, bone);
+            (int From, int Count) heldLights = lamps.Rigid(chain, hung.Path, place, bone);
+            (byte[] held, byte[] heldWeights) = swaying.Bound(chain, mesh, place, bone, hung.Path, heldLights);
             var kept = new Part(mesh, held, heldWeights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
-            lamps.Rigid(chain, hung.Path, place, bone);
             return (kept, body, Told(hung, where, PartKind.Rigid, default, kept));
         }
 
@@ -2373,9 +2392,9 @@ public static class MonsterModels
             return (ridden, body, Told(hung, where, PartKind.Played, counted, ridden));
         }
 
-        (byte[] bones, byte[] weights) = Bound(mesh.Positions.Length, bone);
+        (int From, int Count) rigidLights = lamps.Rigid(chain, hung.Path, place, bone);
+        (byte[] bones, byte[] weights) = swaying.Bound(chain, mesh, place, bone, hung.Path, rigidLights);
         var rigid = new Part(mesh, bones, weights, place, dress.Skins, dress.Modes) { Wearing = dress.ShapeMaterials };
-        lamps.Rigid(chain, hung.Path, place, bone);
         return (rigid, body, Told(hung, where, PartKind.Rigid, counted, rigid));
     }
 
@@ -2413,6 +2432,320 @@ public static class MonsterModels
             Rigs.Add(own);
             return first;
         }
+    }
+
+    /// <summary>
+    /// The bones of his rigid pieces the engine swings as measured, gathered as he is dressed: each piece's vertices put on its socket's bone
+    /// but the share its swinging bones carry, which goes to a bone of its own appended to his rig once the riders are joined (<see cref="Made"/>).
+    /// </summary>
+    /// <remarks>
+    /// THE EXILE'S STAFF'S LAMP (v0.1.416, DECIDED from the live client, 2026-11-01: "build it now, starting with the lamp"). In the game its
+    /// phys_tri_lamp_jntBnd swings on base_lamp_jntBnd, flailing as he whirls and swaying in his idle - MEASURED off the game's light list as a
+    /// rigid pendulum (<see cref="Pendulum"/>). The simulation is the .ao's: ClientAnimationController names its parameters, and only the set
+    /// measured is swung - all ten keys at the staff's values, no other key of the block but the skeleton's, a socket's and the attachment's -
+    /// since another set (the player's cape: contraction 0.6, viscosities 0.3 and 0.1, enclosure 0.25, force 10) moves otherwise, unmeasured.
+    /// A swung bone is a phys_ bone of the piece's own rig whose parent is not one and below which none is - a rod, not a chain; its descendants
+    /// swing with it. Its light swings too (CarriedLights.Gathering.Rebone).
+    /// </remarks>
+    internal sealed class Swaying(Func<string, byte[]?> read)
+    {
+        private readonly List<Ask> _asks = [];
+        private readonly List<string> _said = [];
+        private int _count;
+
+        /// <summary>
+        /// A rigid piece's vertex bones and weights: every vertex on <paramref name="socket"/> - and, where its chain carries the measured
+        /// simulation, the share its swinging bones carry on bones numbered once the rig is made, the socket standing in until then.
+        /// </summary>
+        public (byte[] Bones, byte[] Weights) Bound(
+            IReadOnlyList<AnimatedObject> chain, SkinnedMesh mesh, Matrix4x4 place, int socket, string path, (int From, int Count) lights)
+        {
+            (byte[] bones, byte[] weights) = MonsterModels.Bound(mesh.Positions.Length, socket);
+            Dictionary<string, string> said = Simulation(chain);
+            if (said.Count == 0)
+            {
+                return (bones, weights);
+            }
+
+            string name = Name(path);
+            if (Unmeasured(said) is { Length: > 0 } why)
+            {
+                _said.Add($"{name}: its simulation is not the one measured ({why}) - its bones stand as animated");
+                return (bones, weights);
+            }
+
+            AnimationSkeleton own = Read(read, Entryed(chain, RigBlock, RigEntry), AnimationSkeleton.Read);
+            if (!own.Ready || SkeletonPose.Of(own) is not { } rest)
+            {
+                _said.Add($"{name}: its own rig did not read - nothing swung");
+                return (bones, weights);
+            }
+
+            if (mesh.Bones.Length != mesh.Positions.Length * 4 || mesh.Weights.Length != mesh.Bones.Length || SkeletonPose.Highest(mesh) >= own.Bones.Count)
+            {
+                _said.Add($"{name}: its mesh is not weighted to its own rig - nothing swung");
+                return (bones, weights);
+            }
+
+            List<int> rods = Rods(own, rest.Parents);
+            if (rods.Count == 0)
+            {
+                _said.Add($"{name}: no {CaptureMonsterFiles.PhysicsBone} bone of its rig hangs as a rod from a bone not simulated - nothing swung");
+                return (bones, weights);
+            }
+
+            // EACH OF ITS OWN BONES' ROD, -1 for none: a rod's bone and every bone below it.
+            var rodOf = new int[own.Bones.Count];
+            Array.Fill(rodOf, -1);
+            for (var rod = 0; rod < rods.Count; rod++)
+            {
+                foreach (int under in Below(rods[rod], rest.Parents))
+                {
+                    rodOf[under] = rod;
+                }
+            }
+
+            var swung = new List<int>[rods.Count];
+            Span<int> shares = stackalloc int[rods.Count + 1];
+            for (var vertex = 0; vertex < mesh.Positions.Length; vertex++)
+            {
+                shares.Clear();
+                int slot = vertex * 4;
+                for (var part = 0; part < 4; part++)
+                {
+                    byte heavy = mesh.Weights[slot + part];
+                    if (heavy > 0)
+                    {
+                        int rod = rodOf[mesh.Bones[slot + part]];
+                        shares[rod + 1] += heavy;
+                    }
+                }
+
+                // THE SOCKET'S SHARE FIRST, then each rod's; a vertex weighted to nothing hangs from the socket whole, as before.
+                int filled = 0;
+                for (var rod = -1; rod < rods.Count && filled < 4; rod++)
+                {
+                    int heavy = Math.Min(shares[rod + 1], byte.MaxValue);
+                    if (heavy == 0)
+                    {
+                        continue;
+                    }
+
+                    weights[slot + filled] = (byte)heavy;
+                    if (rod >= 0)
+                    {
+                        (swung[rod] ??= []).Add(slot + filled);
+                    }
+
+                    filled++;
+                }
+
+                if (filled == 0)
+                {
+                    weights[slot] = byte.MaxValue;
+                    filled = 1;
+                }
+
+                for (int rest_ = filled; rest_ < 4; rest_++)
+                {
+                    weights[slot + rest_] = 0;
+                }
+            }
+
+            for (var rod = 0; rod < rods.Count; rod++)
+            {
+                int bone = rods[rod];
+                int top = rest.Parents[bone];
+                var names = new HashSet<string>(Below(bone, rest.Parents).Select(one => own.Bones[one].Name), StringComparer.OrdinalIgnoreCase);
+                _asks.Add(new Ask(
+                    _count++,
+                    bones,
+                    swung[rod] ?? [],
+                    socket,
+                    Vector3.Transform(rest.BindModel[top].Translation, place),
+                    Vector3.Transform(rest.BindModel[bone].Translation, place),
+                    own.Bones[bone].Name,
+                    path,
+                    lights,
+                    names));
+            }
+
+            return (bones, weights);
+        }
+
+        /// <summary>
+        /// His rig with a bone appended for every rod asked for (AnimationSkeleton.Swinging), each rod's vertices and lights put on it; the swings,
+        /// and what became of every piece that simulates bones, said.
+        /// </summary>
+        public (AnimationSkeleton Rig, IReadOnlyList<BoneSwing> Swings, string Said) Made(AnimationSkeleton rig, CarriedLights.Gathering lamps)
+        {
+            if (_asks.Count == 0)
+            {
+                return (rig, [], string.Join("; ", _said));
+            }
+
+            // PAST THE PALETTE'S LIMIT nothing swings, and the socket that stood in keeps every vertex where it hung before.
+            if (rig.Swinging([.. _asks.Select(one => (SwingName + one.Name, one.Socket))]) is not { } swinging)
+            {
+                _said.Add($"{_asks.Count} bones to swing would take his rig past {AnimationSkeleton.MostBones} bones, or its tree does not hold together - none swung");
+                return (rig, [], string.Join("; ", _said));
+            }
+
+            int first = rig.Bones.Count;
+            var swings = new List<BoneSwing>(_asks.Count);
+            foreach (Ask one in _asks)
+            {
+                int bone = first + one.Ordinal;
+                foreach (int slot in one.Slots)
+                {
+                    one.Bones[slot] = (byte)bone;
+                }
+
+                lamps.Rebone(one.Lights, one.Names, bone);
+                var swing = new BoneSwing(bone, one.Socket, one.Pivot, one.Rest, one.Name, one.Path);
+                swings.Add(swing);
+                string socket = one.Socket >= 0 && one.Socket < rig.Bones.Count ? rig.Bones[one.Socket].Name : "no bone";
+                _said.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Name(one.Path)}'s {one.Name} swings as measured: a rod of {Vector3.Distance(one.Pivot, one.Rest):0.#} from its parent, held at {socket}, {one.Slots.Count} vertex weights on it"));
+            }
+
+            return (swinging, swings, string.Join("; ", _said));
+        }
+
+        /// <summary>A swung bone's name in his rig: its own bone's, marked.</summary>
+        private const string SwingName = "swung:";
+
+        /// <summary>The ClientAnimationController lines of a chain bearing on a simulation, nearest file first - empty where none is written.</summary>
+        private static Dictionary<string, string> Simulation(IReadOnlyList<AnimatedObject> chain)
+        {
+            var said = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (AnimatedObject ao in chain)
+            {
+                foreach (AoStruct block in ao.Named(RigBlock))
+                {
+                    foreach (AoEntry entry in block.Entries)
+                    {
+                        if (!NotSimulation.Contains(entry.Key))
+                        {
+                            said.TryAdd(entry.Key, entry.Value.Trim());
+                        }
+                    }
+                }
+            }
+
+            return said;
+        }
+
+        /// <summary>The ClientAnimationController keys that say nothing of a simulation: the rig, a socket and its frame, the attachment's pairing.</summary>
+        private static readonly HashSet<string> NotSimulation = new(StringComparer.Ordinal)
+        {
+            RigEntry, "socket", "parent", "translation", "rotation", "scale", Attachment,
+        };
+
+        /// <summary>
+        /// The simulation the lamp was measured under (WandererStaffHeld.ao), key by key - MEASURED there; any other is not swung.
+        /// </summary>
+        private static readonly (string Key, string Value)[] Measured =
+        [
+            ("linear_allowed_contraction", "0"),
+            ("bend_stiffness", "800"),
+            ("bend_allowed_angle", "0"),
+            ("normal_viscosity_multiplier", "0"),
+            ("tangent_viscosity_multiplier", "0"),
+            ("enclosure_radius", "5"),
+            ("enclosure_angle", "5"),
+            ("animation_velocity_factor", "2"),
+            ("animation_force_factor", "2"),
+            ("use_shock_propagation", "false"),
+        ];
+
+        /// <summary>Where a chain's simulation differs from the measured one, said; empty where it is the measured one.</summary>
+        internal static string Unmeasured(IReadOnlyDictionary<string, string> said)
+        {
+            var apart = new List<string>();
+            foreach ((string key, string value) in Measured)
+            {
+                if (!said.TryGetValue(key, out string? theirs))
+                {
+                    apart.Add($"no {key}");
+                }
+                else if (!Same(theirs, value))
+                {
+                    apart.Add($"{key} {theirs}");
+                }
+            }
+
+            foreach (string key in said.Keys)
+            {
+                if (Array.FindIndex(Measured, one => string.Equals(one.Key, key, StringComparison.Ordinal)) < 0)
+                {
+                    apart.Add($"{key} {said[key]}, not measured");
+                }
+            }
+
+            return string.Join(", ", apart);
+        }
+
+        /// <summary>Whether a value is the measured one: as numbers where both read as one, else as words.</summary>
+        private static bool Same(string theirs, string measured)
+            => double.TryParse(theirs, NumberStyles.Float, CultureInfo.InvariantCulture, out double one)
+                && double.TryParse(measured, NumberStyles.Float, CultureInfo.InvariantCulture, out double other)
+                ? Math.Abs(one - other) < 1e-6
+                : string.Equals(theirs, measured, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>The phys_ bones hanging as a rod: a parent not simulated, no simulated bone below.</summary>
+        private static List<int> Rods(AnimationSkeleton rig, IReadOnlyList<int> parents)
+        {
+            var rods = new List<int>();
+            for (var bone = 0; bone < rig.Bones.Count; bone++)
+            {
+                int top = parents[bone];
+                if (!Simulated(rig, bone) || top < 0 || Simulated(rig, top))
+                {
+                    continue;
+                }
+
+                if (!Below(bone, parents).Any(under => under != bone && Simulated(rig, under)))
+                {
+                    rods.Add(bone);
+                }
+            }
+
+            return rods;
+        }
+
+        private static bool Simulated(AnimationSkeleton rig, int bone)
+            => rig.Bones[bone].Name.StartsWith(CaptureMonsterFiles.PhysicsBone, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>A bone and every bone below it.</summary>
+        private static IEnumerable<int> Below(int bone, IReadOnlyList<int> parents)
+        {
+            for (var one = 0; one < parents.Count; one++)
+            {
+                for (int up = one; up >= 0; up = parents[up])
+                {
+                    if (up == bone)
+                    {
+                        yield return one;
+                        break;
+                    }
+                }
+            }
+        }
+
+        /// <summary>One rod asked for: its number among the rods, the piece's bone array and the slots that name it, and what it is.</summary>
+        private sealed record Ask(
+            int Ordinal,
+            byte[] Bones,
+            List<int> Slots,
+            int Socket,
+            Vector3 Pivot,
+            Vector3 Rest,
+            string Name,
+            string Path,
+            (int From, int Count) Lights,
+            HashSet<string> Names);
     }
 
     /// <summary>One line of the walk's account of itself - see <see cref="PartFit"/>.</summary>

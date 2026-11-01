@@ -1104,6 +1104,30 @@ So v0.1.414 READS HIS PLACE AND FACING EVERY TICK (Render from CurrentWorldPosit
 engine swings the lamp in the world or in his own frame is told only against his frame - and 0x200 bytes round each window read every tick, once
 a sweep (`BoneWatch.WideMargin`), for the light record's head and its neighbours. Take the bone watch with the staff in hand: stand still, at the
 high tone take ONE short walk (a click a little way off), then stand completely still until the low tone - the swing dying away is the measurement.
+WHAT v0.1.414'S CAPTURE SAID (2026-11-01 09:29, Hunting Grounds, through the agent link; the staff in hand, the person walking 4,021 units and
+turning 2,622 degrees with a 180-degree turn in place at 1.7 s - "the lamp swings in the game when he does not move too: his idle", said from the
+live client). MEASURED, read offline from bone-watch.bin: one record held the lamp EVERY TICK, 10.1 ms apart (schema `RenderPointLight`'s second
+head, the fixture `tests/fixtures/lamp-swing`). Where the staff stood still, 81 ticks of the free swing are a Verlet step in the world - the last
+tick's motion kept at 0.98076, gravity 0.0625 world units a tick squared on a rod of 22.3368 (611 a second squared), the rod held - to R² 0.9995.
+Where it moves, the rod's top carries the lamp whole and kicks it against its acceleration A TICK LATE by 0.45 of it: over the ticks on which he
+did not turn, thirty-tick runs end 6.2 degrees off the game's lamp at the median (no kick 33, all of it 43). His turning is not fitted - the lamp
+follows his facing more than a carried rod would, by no one fraction (0.83 to 0.93 by stretch).
+SO THE LAMP SWINGS FROM v0.1.416 (DECIDED from the live client, 2026-11-01: "build it now, starting with the lamp"), in every book: a rigid piece
+(held, a prop, hung at a bone) whose .ao's ClientAnimationController carries THE MEASURED SIMULATION - WandererStaffHeld.ao's ten keys at its
+values, no other key but the skeleton's, a socket's and the attachment's (`MonsterModels.Swaying`; the player's cape, contraction 0.6 and force
+10, stands as animated and the line says why) - swings each phys_ bone of its own rig whose parent is none and below which none is (a rod): a bone
+appended to his rig under the socket's bone, bound so it follows it rigidly in every pose (`AnimationSkeleton.Swinging`, `Swung`; `Played` keeps a
+rig's tracks to its own bones), the rod's vertices and its light put on it (`CarriedLights.Gathering.Rebone`). The pane steps it on the
+animation's clock (`BoneSwinger`): every 10.1 ms tick at its own frame, the hand worked down its chain alone (`SkeletonPose.SkinAt`, Take's to the
+bit), the pendulum as measured (`Pendulum`: keep, gravity over the rod, the kick a tick late), the swung bone's skin the socket's then the
+shortest turn about the rod's top onto the swing (`BoneSwing.Swung`, `SkeletonPose.Override`) - right after every pose, before the card, the
+processor, the hull or the lights read it. The light panel's "swing", on by default (`MonsterPortrait.SceneSwing`); off, the lamp hangs as
+authored. CHOSEN, said under the picture: a picture starts with the lamp hanging straight down; another animation, the clock moved by hand and an
+animation starting over are no motion of the hand (`Pendulum.Settle`); the clock standing, the lamp stands. NOT MODELLED: his turning, the
+resting lamp's tilt of 2 to 7.5 degrees towards its rest's way (the bend stiffness, a reading), the twist about the rod. monster-files.txt writes
+every swing and plays it through his opening animation for 8 s from hanging down, its angle from straight down each second
+(`CaptureMonsterFiles.Swung`); `BoneSwingTests` hold the pendulum against the game's lamp. NEXT, DECIDED from the live client: a survey of the
+install's .ao simulation sets, which are used most, before any other is swung.
 
 ## Verify against the game, not against yourself
 

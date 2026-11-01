@@ -252,7 +252,7 @@
         },
         "light": {
           "type": "object",
-          "description": "Light panel switches by label to true or false: game light, room, carried, flicker, sun, shadows, player, exposure, colour grade, emissive, glints, reflection, scene, refraction, caustics, crash, way round, past walls, break by ground, wetness, spray from occlusion, fog, clouds, roof fade, free sun.",
+          "description": "Light panel switches by label to true or false: game light, room, carried, flicker, swing, sun, shadows, player, exposure, colour grade, emissive, glints, reflection, scene, refraction, caustics, crash, way round, past walls, break by ground, wetness, spray from occlusion, fog, clouds, roof fade, free sun.",
           "additionalProperties": {
             "type": "boolean"
           }

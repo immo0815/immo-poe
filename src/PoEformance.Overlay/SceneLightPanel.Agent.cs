@@ -18,6 +18,7 @@ public sealed partial class SceneLightPanel
         ("room", () => _points, value => _points = value),
         ("carried", () => _carried, value => _carried = value),
         ("flicker", () => _flicker, value => _flicker = value),
+        ("swing", () => _swing, value => _swing = value),
         ("sun", () => _sun, value => _sun = value),
         ("shadows", () => _shadows, value => _shadows = value),
         ("player", () => _playerLight, value => _playerLight = value),

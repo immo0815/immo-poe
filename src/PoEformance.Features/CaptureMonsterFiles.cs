@@ -72,6 +72,7 @@ public static class CaptureMonsterFiles
         Staging(body, model, actor);
         Parts(body, actor);
         Carried(body, actor);
+        Swung(body, actor, unpacking);
         List<(PartFit Part, int Bone)> sockets = SocketsOf(actor);
         List<Swept> his = Animations(body, model, actor, unpacking, sockets);
         Sockets(body, actor, sockets, his);
@@ -326,6 +327,88 @@ public static class CaptureMonsterFiles
         body.Append("  ").AppendLine(actor.CarriedSaid);
     }
 
+    /// <summary>How long the swing is played through his opening animation for the part, in seconds.</summary>
+    private const double SwingSeconds = 8;
+
+    /// <summary>
+    /// The bones of his pieces the tool swings (MonsterModel.Swings, the light panel's "swing"): each rod's top and end at the bind pose in his
+    /// own frame, its length and the bone it hangs from; the measured constants; and the swing played through his opening animation from
+    /// hanging straight down, tick by tick as the pane plays it - its angle from straight down each second, and the most.
+    /// </summary>
+    private static void Swung(StringBuilder body, MonsterModel actor, Func<ReadOnlyMemory<byte>, int, byte[]?> unpacking)
+    {
+        body.AppendLine().Append(Invariant($"=== the bones he swings (BoneSwing, the light panel's \"swing\"): {actor.Swings.Count} - a rod from its parent's rest to its own, stepped every {Pendulum.Tick * 1000:0.#} ms, keep {Pendulum.Keep}, gravity {Pendulum.Fall:0.000000} of the rod a tick squared, the hand's acceleration a tick late times {Pendulum.Inertia} (all MEASURED)")).AppendLine();
+        if (actor.SwingSaid.Length > 0)
+        {
+            body.Append("  ").AppendLine(actor.SwingSaid);
+        }
+
+        if (actor.Swings.Count == 0)
+        {
+            return;
+        }
+
+        body.AppendLine("  bone\tits own bone\this bone it hangs from\ttop at rest\tend at rest\tlength\tsource");
+        foreach (BoneSwing swing in actor.Swings)
+        {
+            string socket = swing.Socket >= 0 && swing.Socket < actor.Rig.Bones.Count ? actor.Rig.Bones[swing.Socket].Name : "-";
+            body.AppendLine(Invariant($"  {swing.Bone}\t{swing.Name}\t{socket}\t{At(swing.Pivot)}\t{At(swing.Rest)}\t{Vector3.Distance(swing.Pivot, swing.Rest):0.###}\t{swing.Source}"));
+        }
+
+        // THE SWING PLAYED as the pane plays it, a pose a tick, through the animation a picture opens with.
+        IReadOnlyList<SkeletonAnimation> moves = actor.Rig.Animations;
+        int opening = moves.Count == 0 ? -1 : Math.Max(0, moves.ToList().FindIndex(one => string.Equals(one.Name, actor.Opening.Length > 0 ? actor.Opening : "idle_01", StringComparison.Ordinal)));
+        if (opening < 0 || SkeletonPose.Of(actor.Rig) is not { } pose)
+        {
+            body.AppendLine("  (no animation to play the swing through)");
+            return;
+        }
+
+        SkeletonAnimation move = moves[opening];
+        AnimationTracks tracks = actor.Rig.Played(move, unpacking);
+        if (!tracks.Ready || tracks.Frames <= 0f)
+        {
+            body.AppendLine(Invariant($"  ({move.Name}'s keyframes did not read: {tracks.Why})"));
+            return;
+        }
+
+        float rate = move.Rate > 0 ? move.Rate : 30f;
+        var swinger = new BoneSwinger(actor.Swings);
+        var most = new float[actor.Swings.Count];
+        var line = new StringBuilder();
+        float frame = 0f;
+        int ticks = (int)Math.Round(SwingSeconds / Pendulum.Tick);
+        for (var tick = 0; tick <= ticks; tick++)
+        {
+            if (tick > 0)
+            {
+                frame += (float)(Pendulum.Tick * rate);
+                if (frame > tracks.Frames)
+                {
+                    frame %= tracks.Frames;
+                }
+
+                swinger.Due(Pendulum.Tick);
+            }
+
+            pose.Take(tracks, frame);
+            swinger.Swing(pose, tracks, frame, rate, tracks.Frames, swinging: true);
+            for (var one = 0; one < actor.Swings.Count; one++)
+            {
+                Vector3 rod = swinger.OffsetOf(one);
+                float angle = rod.LengthSquared() > 0f ? MathF.Acos(Math.Clamp(rod.Z / rod.Length(), -1f, 1f)) * 180f / MathF.PI : 0f;
+                most[one] = MathF.Max(most[one], angle);
+                if (tick % (int)Math.Round(1 / Pendulum.Tick) == 0)
+                {
+                    line.Append(Invariant($"\t{angle:0.0}"));
+                }
+            }
+        }
+
+        body.AppendLine(Invariant($"  played through {move.Name} ({tracks.Frames:0.#} frames at {rate:0.#} a second, round) for {SwingSeconds:0} s from hanging straight down - each rod's angle from straight down each second, degrees:{line}"));
+        body.AppendLine("  the most over the run: " + string.Join(", ", Enumerable.Range(0, most.Length).Select(one => Invariant($"{actor.Swings[one].Name} {most[one]:0.0}"))));
+    }
+
     /// <summary>One of his animations as swept: every bone's place at frame nought, and each socketed part's bone at nought and over it.</summary>
     /// <param name="Name">The animation's name.</param>
     /// <param name="Bones">Every bone's place in his own frame at frame nought.</param>
@@ -574,8 +657,9 @@ public static class CaptureMonsterFiles
 
         bool inHisFrame = part.Depth == 1 && part.Place == PartPlace.Root;
 
-        // HIS OWN BONES ALONE, not the riders' after them: a piece riding his rig is nearest its own bones by construction.
-        int own = his.Bones.Count - his.Riders.Sum(rider => rider.Rig.Bones.Count);
+        // HIS OWN BONES ALONE, not the riders' after them nor the bones the tool swings: a piece riding his rig is nearest its own bones by
+        // construction, and a swung bone stands at the identity until a pose sets it.
+        int own = his.Bones.Count - his.Riders.Sum(rider => rider.Rig.Bones.Count) - his.Swung;
 
         // THE BONES THE ENGINE SIMULATES, for whether the piece's own animations already move them (the lantern's swing - v0.1.401).
         int[] simulated = [.. Enumerable.Range(0, rig.Bones.Count).Where(bone => rig.Bones[bone].Name.StartsWith(PhysicsBone, StringComparison.OrdinalIgnoreCase))];
