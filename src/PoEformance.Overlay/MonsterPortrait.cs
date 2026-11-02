@@ -772,10 +772,12 @@ public sealed partial class MonsterPortrait
     /// Whether materials that ask to blend are drawn translucent - mixed or added - rather than solid.
     /// </summary>
     /// <remarks>
-    /// ON IN THE EFFECT BOOK AND THE TILE BOOK. What a blend mode's word means is a rule on words, not
-    /// a measurement - see MaterialBlends - and the monster book exports boss icons from what this
-    /// pane draws: a guess that turned part of a boss see-through would end up in the map's art.
-    /// The effect book is where it was asked for, and where a wrong guess costs a look and nothing more.
+    /// ON IN EVERY BOOK. It was off in the Monster Book and the Item Book, because what a blend mode's word means is a rule on words,
+    /// not a measurement - see MaterialBlends - and the monster book exports boss icons from what this pane draws: a guess that turned
+    /// part of a boss see-through would end up in the map's art. So the export still draws solid (<see cref="ExportBlends"/>), and the
+    /// pane draws as the game does (v0.1.455): drawn solid, the Exile's Staff's lantern glass (ForceAlphaBlendNoGI) was a black shell
+    /// over the flame the game shows burning inside it - the probe found the flame's mesh, its emissive times twelve, between the two
+    /// walls of glass, "hidden under the surface drawn before it", and the emissive switch changed not one pixel.
     ///
     /// THE TILE BOOK WAS OFF, and that is why the contact fade changed nothing there: a ground layer's
     /// fade runs in the translucent pass, against the solid depth under it, and with this off every
@@ -953,6 +955,38 @@ public sealed partial class MonsterPortrait
 
     private IReadOnlyList<MaterialBlend>? _maskedOf;
     private IReadOnlyList<MaterialBlend>? _masked;
+
+    /// <summary>
+    /// The blends an export is drawn with: in the Monster Book every shape of the monster solid, a stage's as its materials spell them -
+    /// what an export drew before the pane drew translucency (v0.1.455) - and in every other book the pane's own.
+    /// </summary>
+    /// <remarks>
+    /// THE BOSS ICONS GO INTO THE MAP'S ART, and a blend mode's word is a rule on words (MaterialBlends): the pane drawing a boss's
+    /// translucent materials as the game does is no reason to change what his icon has always been. Worked out at each export, which is
+    /// rare, so nothing is kept.
+    /// </remarks>
+    private IReadOnlyList<MaterialBlend>? ExportBlends()
+    {
+        if (!string.Equals(Book, "monster", StringComparison.Ordinal))
+        {
+            return Blends();
+        }
+
+        int stage = _model.Actor is { } actor ? _model.Mesh.Shapes.Count - actor.Mesh.Shapes.Count : 0;
+        if (stage == 0)
+        {
+            return null;
+        }
+
+        IReadOnlyList<MaterialBlend> all = _model.Blends;
+        var kept = new MaterialBlend[all.Count];
+        for (var one = 0; one < kept.Length; one++)
+        {
+            kept[one] = one < stage ? all[one] : MaterialBlend.Opaque;
+        }
+
+        return kept;
+    }
 
     /// <summary>The blends the last picture was drawn with, compared by reference - a turn of the translucency switches redraws.</summary>
     private IReadOnlyList<MaterialBlend>? _drawnBlends;
@@ -5381,10 +5415,10 @@ public sealed partial class MonsterPortrait
             canvas.Hull = HullOn(canvas.Light);
             return MeshPicture.Of(
                 _model.Mesh, Clocked(canvas), _posed, _posedNormals, ink: Ink,
-                skin: _model.Skin, skins: _model.Skins, blends: Blends(), shades: ShadesOf(_model));
+                skin: _model.Skin, skins: _model.Skins, blends: ExportBlends(), shades: ShadesOf(_model));
         }
 
-        return MeshPicture.Of(_model.Mesh, Clocked(canvas), ink: Ink, skin: _model.Skin, skins: _model.Skins, blends: Blends(), shades: ShadesOf(_model));
+        return MeshPicture.Of(_model.Mesh, Clocked(canvas), ink: Ink, skin: _model.Skin, skins: _model.Skins, blends: ExportBlends(), shades: ShadesOf(_model));
     }
 
     /// <summary>The canvas with the clock the picture is at - the export takes the instant on screen.</summary>
