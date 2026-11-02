@@ -83,7 +83,12 @@ public readonly record struct CurveKey(float Time, float Value, string Kind);
 /// <c>&lt;loop_count&gt;</c> and <c>&lt;loop_index&gt;</c> runs its nodes that many times, a loop slot carrying what the inside fed it into the
 /// next pass (FlagConstraint.fxgraph's chain constraint); null where the node has none.
 /// </param>
-public sealed record ShaderNode(string Type, int Index, string Stage, ShaderValue[] Parameters, string Custom, string Group = "", string[]? Slots = null, ShaderSlot[]? Typed = null)
+/// <param name="Outputs">
+/// A group node's OUTPUT slots (<c>output_slots</c>) with their types and loop flags - what the inside hands out: a plain group's own names
+/// (BoneSphereEmitter.fxgraph's <c>out_EmitterPhase</c> beside its input <c>in_FrameFrac</c>), a loop group's loop slots again under their
+/// input names (FlagConstraint.fxgraph's position, velocity and offset, <c>"loop": true</c> on both sides); null where the node has none.
+/// </param>
+public sealed record ShaderNode(string Type, int Index, string Stage, ShaderValue[] Parameters, string Custom, string Group = "", string[]? Slots = null, ShaderSlot[]? Typed = null, ShaderSlot[]? Outputs = null)
 {
     /// <summary>The key a node inside this group names it by - <see cref="Group"/>'s spelling, the type and index.</summary>
     public string GroupKey => string.Create(CultureInfo.InvariantCulture, $"{Type}_{Index}");
@@ -101,7 +106,7 @@ public sealed record ShaderNode(string Type, int Index, string Stage, ShaderValu
 /// </param>
 public readonly record struct ShaderEnd(string Type, int Index, string Stage, string Variable, string Swizzle, bool Internal = false);
 
-/// <summary>One input slot of a group node: its name, its type, and whether it is a loop slot (<c>"loop": true</c>).</summary>
+/// <summary>One input or output slot of a group node: its name, its type, and whether it is a loop slot (<c>"loop": true</c>).</summary>
 /// <param name="Name">The slot's name - <c>position</c>, <c>&lt;loop_count&gt;</c>.</param>
 /// <param name="Type">Its type as the graph writes it - <c>float3</c>, <c>uint</c>, <c>bool</c>.</param>
 /// <param name="Loop">Whether it carries what the inside fed it into the next pass of a loop group.</param>
@@ -220,7 +225,8 @@ public sealed class ShaderGraph
                         Text(node, "custom_parameter"),
                         Text(node, "group_id"),
                         node.TryGetProperty("input_slots", out JsonElement slots) ? Names(slots) : null,
-                        node.TryGetProperty("input_slots", out JsonElement typed) ? Slotted(typed) : null));
+                        node.TryGetProperty("input_slots", out JsonElement typed) ? Slotted(typed) : null,
+                        node.TryGetProperty("output_slots", out JsonElement outputs) ? Slotted(outputs) : null));
                 }
             }
 
@@ -333,7 +339,7 @@ public sealed class ShaderGraph
             Text(end, "swizzle"),
             end.TryGetProperty("internal", out JsonElement inside) && inside.ValueKind == JsonValueKind.True);
 
-    /// <summary>A group node's input slots with their types and loop flags.</summary>
+    /// <summary>A group node's input or output slots with their types and loop flags.</summary>
     private static ShaderSlot[] Slotted(JsonElement slots)
         => slots.ValueKind == JsonValueKind.Array
             ? [.. slots.EnumerateArray()

@@ -1540,6 +1540,21 @@ body reading this pass's values, each loop slot handed what the inside fed it af
 every pass has run; what the inside reads from outside but through a slot runs before the loop. A plain group's slot now takes the inside's feed
 for an outside reader and the outside's for an inside one. Relinked offline from the capture of 21:49: 145 of FlagConstraint's nodes, the three
 updates compiling under DXC.
+A REVIEW FOUND THREE LATENT GAPS IN THE LOOP, MENDED IN v0.1.454 - none reaches FlagConstraint (relinked from the capture of 23:05, all 22 of the
+lamp's shaders come out to the byte): the group's `output_slots` are read (`ShaderNode.Outputs`), an output no input slot names declared before
+the loop at nought and taking what the inside fed it, a slot the inside feeds that carries nothing still read by every pass as the outside handed
+it and after the loop as the inside fed it last (`<slot>_out`); the writers of the semantics the inside reads through ports no link feeds run
+before the loop (`SemanticsRead`), not inside its braces; and a group sync in the body under a count that can differ between the threads of a
+group is said (`SaySync`, `ShaderThreads`) - FXC refuses it at cs_5_0 (X3663), DXC compiles it. A body syncs where a node's code reaches the
+prelude's MEMORY_BARRIER_GROUP, _ALL or _DEVICE (READ: the *WithGroupSync intrinsics; _SUB_GROUP is GroupMemoryBarrier, no sync) through any
+function or macro of the declarations - every BroadcastParticleGroup node through ParticleGroupBroadcast, FlagConstraint's among them; a count
+differs where the code of the one output feeding it reaches SV_DispatchThreadID, SV_GroupThreadID or SV_GroupIndex, a semantic written from one, an
+extension point or a per-thread static or group-shared array (on the install's sources: ParticleGroupID's group_size does not, its id does;
+FlagConstraint's ConstantUInt does not). NO DX11_UNROLL, READ from the program (the build of 2026-10-27; schema `ShaderFragmentDef`,
+`ShaderGraphNode`): the generator writes DX11_UNROLL, DX11_UNROLL_N(count) or [loop] before a group's `for(; i < n; i++)` (module+0x12DE43B)
+only from a GROUP block's own head words `unroll`, `unroll: count` and `loop` (parsed at module+0x28DB767), the program spelling "unroll"
+nowhere else but in its preludes' macros and those two lines - no key of a graph sets it, and a graph's editor `<Group>` has no block: the
+engine's loop group is a bare for, as the linker writes it.
 
 ## Verify against the game, not against yourself
 
