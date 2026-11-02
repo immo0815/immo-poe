@@ -10,6 +10,19 @@ namespace PoEformance.Core.Tests;
 /// </summary>
 public class AreaEnvironmentTests
 {
+    /// <summary>
+    /// The snapshot's area between two areas is a DEFAULT AreaInfo, which skips the parameter's default: its environment came out null and
+    /// the light panel's length read ended the tool (v0.1.452, leaving Plantation for the hideout with the Monster Book open).
+    /// </summary>
+    [Fact]
+    public void ADEFAULTAreaHasAnEmptyEnvironmentNotANullOne()
+    {
+        Assert.Equal(string.Empty, default(AreaInfo).Environment);
+        Assert.Equal(string.Empty, new AreaInfo("G1_2", "The Riverbank", 1, false, false).Environment);
+        Assert.Equal("Metadata/Environment/a.env", (default(AreaInfo) with { Environment = "Metadata/Environment/a.env" }).Environment);
+        Assert.Equal(new AreaInfo("x", "y", 1, false, false, "e"), new AreaInfo("x", "y", 1, false, false, "e"));
+    }
+
     private const ulong WorldData = 0x10_0000;
     private const ulong Details = 0x20_0000;
     private const ulong Row = 0x30_0000;

@@ -2788,6 +2788,11 @@ one a task dropped, go into `overlay.log` before the process ends (Main); four s
 faulting module, the exception code and offset), Windows Error Reporting (1001), Application Hang (1002) and .NET Runtime (1026) of
 the last fortnight naming the tool or the game - which a native fault, a fail-fast or a stack overflow leaves where no code of the
 process could write. Take a capture with it after any crash before guessing at one.
+ONE SUCH CRASH WAS READ FROM THE LOG (v0.1.452, 2026-11-02, said from the live client with the dialog "Calling PopID() too many times!"): leaving
+Plantation for the hideout with the Monster Book open, the snapshot's area between the two was a DEFAULT AreaInfo, whose Environment - a record
+struct's parameter default skipped - was null, and SceneLightPanel.Load read its length; the exception unwound through ImGui's child windows,
+whose finally blocks popped the wrong window's ID stack (the assert dialog), then ended the tool (overlay.previous.log named it). From v0.1.453
+AreaInfo.Environment is never null. An assert dialog of ImGui's is the symptom of an exception in a drawing; the log says which.
 
 ## The agent link
 
