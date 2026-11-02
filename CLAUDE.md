@@ -1517,6 +1517,17 @@ ITS CAPTURE (v0.1.449, 2026-11-02 01:02, Canal Hideout, the player taken with th
   (its "its write code" comments) keeps its value in a static array - the albedo's alpha, the emissive's largest channel, -1 where never
   reached - and the pass is drawn returning four of them a draw, each line naming the graph and stage of each write: which graph makes a
   channel nought is read off one capture.
+THE FLAME'S NOUGHT WAS THE TOOL'S OWN (found by the diagnosis workflow's flame investigator over v0.1.449's capture and the linked shaders,
+reproduced numerically, and confirmed live: the capture of 2026-11-02 01:38 with "colour grade" unticked put the flame's own pass on 8,158 pixels).
+The pass's finishing grades through the light's table at t127 (`PoefGrade`, bound by Finish once a Drew), and Bound then walked every resource
+the wrapped pixel shader's reflection names, PoefGrade among them, and bound the neutral of zeros over it - so with the colour grade on (the
+light panel's default) every colour graded to nought; WARP never saw it, its test passing no light. MENDED in v0.1.451: Bound and Unbound leave
+t127 to Finish (`ParticleGpuTests.THEFINISHINGGradeSurvivesThePasssOwnBindings` draws under an identity grade); a float buffer's neutral is a
+float view (`_zeroFloats`); `Particled` holds both stages' 128 resource slots, the pixel stage's samplers and both stages' constant buffers
+across the particles and puts them back - Unbound had nulled t0..t12, where the light keeps its points, reach, cube, grade and shadow for the
+fog after. And ADDITIVE LIGHT IS SCALED BY ITS ALPHA BEFORE IT IS FINISHED, as the engine adds light times alpha to its linear picture and
+tone-maps the sum: that capture's flame peaked at 0.148, encoded first and scaled after - an HDR light of 2 at an alpha of a quarter came out
+0.26 where the light it adds encodes to 0.75.
 
 ## Verify against the game, not against yourself
 

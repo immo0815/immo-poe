@@ -130,6 +130,61 @@ public sealed class ParticleGpuTests
         Assert.Contains("pass 0, its pixel shader returning its surface's albedo (rgb, a), over nothing: not drawn - ", state, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The same squares under a light that grades (v0.1.451): the pass's finishing grades its colour through the light's table at t127, which
+    /// v0.1.450 bound a neutral of zeros over before drawing - every colour graded to nought, the flame of the live lamp drawn as exactly
+    /// nothing. Through an identity table the squares stay red.
+    /// </summary>
+    [GpuFact]
+    public void THEFINISHINGGradeSurvivesThePasssOwnBindings()
+    {
+        using ModelGpu? gpu = ModelGpu.Warp(out string why);
+        Assert.True(gpu is not null, why);
+        ColourGrade? grade = ColourGrade.Read(ModelGpuTests.Volume(16, (r, g, b) => (r, g, b)), out why);
+        Assert.True(grade is not null, why);
+        var light = new SceneLight([], SceneLight.PointShape.Zero, null) { Exposure = 1f, Grade = grade };
+        var program = new ParticleProgram(
+            "graded.pet[0]",
+            new ParticleShaderText(Update, "UpdateParticles", []),
+            [new ParticlePassProgram(new ParticleShaderText(Vertex, "VertexMain", []), new ParticleShaderText(Pixel, "PixelMain", []), ParticleBlend.Alpha, [], "test.mat")],
+            ParticleMeshData.Quad,
+            8,
+            1,
+            0.5f,
+            0f,
+            Vector2.One,
+            1,
+            1f,
+            true,
+            0,
+            []);
+        Vector4[] bones = [new(0f, 0f, 0f, 0f)];
+        var frame = new ParticleFrame([new ParticleEmitterNow(program, Matrix4x4.Identity, Matrix4x4.Identity, 0.1f, 0f, bones, bones, true)], 0.1f, 1);
+        var scene = new ModelScene(Box(), Light: light, Particles: frame);
+        using ModelTarget target = gpu.Target(ModelGpuTests.Side);
+        byte[] picture = [];
+        for (long until = Environment.TickCount64 + 120_000; Environment.TickCount64 < until;)
+        {
+            Assert.True(gpu.Draw(target, scene, out why), why);
+            if (gpu.ParticlesSaid.StartsWith("particles: 1 passes", StringComparison.Ordinal))
+            {
+                picture = gpu.Read(target);
+                break;
+            }
+
+            Thread.Sleep(50);
+        }
+
+        Assert.True(picture.Length > 0, gpu.ParticlesSaid);
+        int red = 0;
+        for (var at = 0; at < picture.Length; at += 4)
+        {
+            red += picture[at] > 200 && picture[at + 1] < 40 && picture[at + 2] < 40 ? 1 : 0;
+        }
+
+        Assert.True(red > 8 * 4, $"{red} red pixels under a graded light; {gpu.ParticlesSaid}");
+    }
+
     private static SkinnedMesh Box()
     {
         var positions = new List<Vector3>();
