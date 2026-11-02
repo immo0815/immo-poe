@@ -316,6 +316,9 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
     private void ShareChrome()
     {
         _tools.Chrome = Chrome;
+
+        // AN AGENT CALL WAITING ON A BOOK keeps the tools window drawn over a game panel - see ToolTabs.KeepOnScreen.
+        _tools.KeepOnScreen = () => _agentFrames.Waiting > 0;
         _preloadPanel.Chrome = Chrome;
         _wealthPanel.Chrome = Chrome;
         Chrome.Changed = () => SettingsChanged?.Invoke();

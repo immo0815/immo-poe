@@ -169,6 +169,13 @@ public sealed class ToolTabs
     public WindowChrome Chrome { get; set; } = new();
 
     /// <summary>
+    /// Whether the window stays drawn over a game panel it would otherwise step aside for - while an agent call waits on what one of its
+    /// tabs draws (v0.1.452): the Monster Book's list loads, its player take lands and its pane draws only while its tab is drawn, and with
+    /// the stash open over the window every agent call into the book waited out its minute (the live session of 2026-11-02 02:00).
+    /// </summary>
+    public Func<bool>? KeepOnScreen { get; set; }
+
+    /// <summary>
     /// What is drawn beside the title bar's icons: the version, and which build this really is.
     /// </summary>
     /// <remarks>
@@ -365,7 +372,7 @@ public sealed class ToolTabs
         // and the stash are what the player is looking at, and a readout across them is right
         // information in the way. The idles still run: a tool told nobody is looking is exactly
         // what a hidden window means, and the inspectors behind these tabs must stop reading.
-        if (Chrome.Covered(ChromeId))
+        if (Chrome.Covered(ChromeId) && KeepOnScreen?.Invoke() != true)
         {
             RunIdles(null);
             return;

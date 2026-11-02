@@ -1528,6 +1528,18 @@ across the particles and puts them back - Unbound had nulled t0..t12, where the 
 fog after. And ADDITIVE LIGHT IS SCALED BY ITS ALPHA BEFORE IT IS FINISHED, as the engine adds light times alpha to its linear picture and
 tone-maps the sum: that capture's flame peaked at 0.148, encoded first and scaled after - an HDR light of 2 at an alpha of a quarter came out
 0.26 where the light it adds encodes to 0.75.
+THE FLAME DREW AS STRAIGHT STREAKS THROUGH THE LANTERN (said from the live client with a picture, v0.1.451: "light rays that look wrong"). Its
+ribbon is render_mesh + render_group_8 over ChainToTrail: the eight members of a group share the leader's spawn (SyncedSpawn), and
+FlagConstraint.fxgraph pulls each member towards the one before it - in a LOOP GROUP, which the linker took for the editor's folding: a `<Group>`
+whose input slots begin with `<loop_count>` (ConstantUInt #0, 3) and `<loop_index>`, its slots position, velocity and offset marked `"loop": true`,
+its 55 nodes carrying `group_id` `<Group>_0`, the links from and into its slots inside it marked `"internal": true` (the reader kept neither flag
+before). Taken for wiring, the loop's output read its input: 11 of FlagConstraint's 167 nodes were linked, the members never left the leader and
+the ribbon stood straight. FROM v0.1.452 A LOOP GROUP IS LINKED AS THE GRAPH RUNS IT (`ParticleLinker`'s EmitLoop, `ShaderEnd.Internal`,
+`ShaderNode.Typed`): its slots declared before a `for` of `<loop_count>` passes from what the outside hands them, its nodes run in the loop's
+body reading this pass's values, each loop slot handed what the inside fed it after the pass (all at once), a node outside reading the slot once
+every pass has run; what the inside reads from outside but through a slot runs before the loop. A plain group's slot now takes the inside's feed
+for an outside reader and the outside's for an inside one. Relinked offline from the capture of 21:49: 145 of FlagConstraint's nodes, the three
+updates compiling under DXC.
 
 ## Verify against the game, not against yourself
 
@@ -2821,6 +2833,9 @@ in 100 s, so a call that runs longer than 40 s is answered as pending (`structur
   (`GameWindowTracker.Settled`, CHOSEN): v0.1.412 looked once, straight after, found no window in front at all while Windows handed the
   activation on, and said the game had not come when it had (MEASURED through the agent link). What it did opens the call's answer on a
   line of its own and goes to overlay.log; the tool `front` does it alone. The game's own other windows count as the game.
+- THE TOOLS WINDOW STAYS WHILE AN AGENT CALL WAITS ON IT (v0.1.452): a game panel covering it (the stash, `WindowChrome.Covered`) hid it, so the
+  Monster Book's tab never drew and "take the player" never ran - the call timed out (MEASURED through the agent link after v0.1.451's restart,
+  the stash open). `ToolTabs.KeepOnScreen` keeps it drawn while `AgentFrames` holds a call.
 - SET UP ONCE: the About page's "agent link" - "on", then "copy key" into the cloud environment's settings as `POEF_AGENT_KEY` (never into
   a chat), then a new cloud session (environment variables and `.mcp.json` are read at a session's start). "renew key" makes the old one
   useless at once. The tool runs only while the game does (Main ends without a game process), so the link does too.

@@ -298,6 +298,62 @@ public class ParticleLinkerTests
         Assert.Empty(linked.Unresolved);
     }
 
+    /// <summary>
+    /// A LOOP GROUP RUNS ITS NODES <c>&lt;loop_count&gt;</c> TIMES (v0.1.452): FlagConstraint.fxgraph's chain constraint is such a group, and
+    /// taken for the editor's folding its passes never ran - the flame's ribbon drew as straight streaks. Its slots are declared before the
+    /// loop from what the outside hands them, the inside reads this pass's value, a loop slot takes what the inside fed it after the pass, and
+    /// a node outside reads the slot once every pass has run.
+    /// </summary>
+    [Fact]
+    public void ALOOPGroupRunsItsNodesAsManyTimesAsItsCountSays()
+    {
+        ShaderSource source = ShaderSource.Of([("shaders/loop.ffx", Source + """
+
+            FRAGMENT Three
+            	cost: free
+            	out uint output
+            {{
+            	output = 3u;
+            }}
+            """)]);
+        ShaderGraph graph = Graph("""
+            { "nodes": [
+                { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate" },
+                { "type": "Three", "index": 0 },
+                { "type": "<Group>", "index": 0,
+                  "input_slots": [ { "name": "<loop_count>", "type": "uint" }, { "name": "<loop_index>", "type": "uint" },
+                                   { "name": "size", "type": "float", "loop": true }, { "name": "step", "type": "float" } ],
+                  "output_slots": [ { "name": "size", "type": "float", "loop": true } ] },
+                { "type": "AddConst", "index": 0, "group_id": "<Group>_0" },
+                { "type": "AddConst", "index": 1, "parameters": [ { "value": 0.25 } ] },
+                { "type": "ParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate" } ],
+              "links": [
+                { "src": { "type": "Three", "index": 0, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "<loop_count>" } },
+                { "src": { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "size" } },
+                { "src": { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "output" }, "dst": { "type": "AddConst", "index": 1, "variable": "a" } },
+                { "src": { "type": "AddConst", "index": 1, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "step" } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "size", "internal": true }, "dst": { "type": "AddConst", "index": 0, "variable": "a" } },
+                { "src": { "type": "AddConst", "index": 0, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "size", "internal": true } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "size" }, "dst": { "type": "ParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "input" } } ] }
+            """);
+        LinkedShader linked = ParticleLinker.Update(source, [new LinkedGraph("loop.fxgraph", graph, new Dictionary<string, ShaderValue[]>())], "#define DX11");
+        string hlsl = linked.Hlsl;
+
+        int handed = hlsl.IndexOf("_size = n0_0_output;", StringComparison.Ordinal);
+        int loop = hlsl.IndexOf("for (uint n0_2_index = 0u; n0_2_index < n0_2_count; n0_2_index++)", StringComparison.Ordinal);
+        int inside = hlsl.IndexOf("// AddConst #0, loop.fxgraph", StringComparison.Ordinal);
+        int next = hlsl.IndexOf("float n0_2_size_next = n0_3_output;", StringComparison.Ordinal);
+        int carried = hlsl.IndexOf("n0_2_size = n0_2_size_next;", StringComparison.Ordinal);
+        int written = hlsl.IndexOf("= n0_2_size; // ParticlesUpdate::Size @ParticlesUpdate", StringComparison.Ordinal);
+        Assert.True(handed >= 0 && handed < loop && loop < inside && inside < next && next < carried && carried < written, hlsl);
+        Assert.Contains("uint n0_2_count = n0_1_output;", hlsl, StringComparison.Ordinal);
+        Assert.Contains("float a = n0_2_size;", hlsl, StringComparison.Ordinal);
+
+        // WHAT THE INSIDE READS ONLY THROUGH A PLAIN SLOT stands before the loop, run once.
+        Assert.True(hlsl.IndexOf("// AddConst #1, loop.fxgraph", StringComparison.Ordinal) < loop, hlsl);
+        Assert.True(linked.Unresolved.Count == 0, string.Join("; ", linked.Unresolved));
+    }
+
     [Fact]
     public void ACURVEOfTheGraphEditorIsGivenARowOfTheSplineLut()
     {
