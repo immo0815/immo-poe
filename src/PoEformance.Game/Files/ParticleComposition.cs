@@ -26,9 +26,21 @@ namespace PoEformance.Game.Files;
 /// EACH RENDER PASS: base.fxgraph (Metadata/EngineGraphs/base.fxgraph); render_persistent where persistent; render_default without a
 /// mesh, render_vertex_group (and render_mesh_set where mesh_set) with one whose vertex groups are used, else render_mesh - the stateless
 /// variants where there is no update material; render_sort where it sorts; face_&lt;face_lock in lower case&gt; unless None (the face enum's
-/// 38 names at module+0x35B4F70 index the composer's jump table at module+0x1360BEC one for one); render_transform unless the face is one of
-/// <see cref="Untransformed"/> (the byte table at module+0x1360C88); render_flip_normal without a mesh; render_group_N; the pass's
-/// render material LAST.
+/// 38 names at module+0x35B4F70 index the composer's jump table at module+0x1360BEC one for one); render_transform where the face takes it
+/// (<see cref="TakesTransform"/>: one of <see cref="Transformed"/>, or below 4); render_flip_normal without a mesh; render_group_N; the
+/// pass's render material LAST.
+///
+/// THE FACE'S render_transform, READ AGAIN (v0.1.450): the composer switches on the face less 4 over 34 values (module+0x135F1DA: add eax, -4;
+/// cmp eax, 0x21; ja the default), the byte table at module+0x1360C88 taking each to case 0 or case 1 of a two-entry jump table at
+/// module+0x1360C80. Case 1 and the default - the faces below 4, None, Camera, Camera_Z and Camera_Fixed - push render_transform.fxgraph
+/// (module+0x135F1FB, the wide string at module+0x319B650) and fall into case 0 (module+0x135F26C), which pushes render_flip_normal.fxgraph
+/// where there is no mesh (module+0x319B1D0). So the table's ones TAKE render_transform: v0.1.429 read it the other way round, and the
+/// embers' face_velocity_camera, which writes the vertex's world place itself, was transformed a second time - every quad at its particle
+/// plus its scale times its particle again (MEASURED v0.1.449, the capture of 2026-11-02 01:02: 108 of 108 vertices streamed out of view,
+/// particle 0's z -184.55 x (1 + its scale 0.5827) = -292.09 against -292.10 streamed). The faces the table holds nought for are exactly
+/// the 14 whose graph writes VertexPosition itself (the capture's face graphs, every one held: Camera_Velocity, Camera_Emitter,
+/// Camera_Along, Velocity_Camera, Emitter_Camera, EmitterShape_Camera, Along_Camera and the seven Old_ ones naming Camera); every other face
+/// writes only the particle's rotation for render_transform to turn the mesh by.
 ///
 /// NOT READ: what a mesh adds to a pass's list between the sort and the face (module+0x13C0490, by a number the mesh or the pass carries) -
 /// a pass with a mesh says so in <see cref="ParticleShaders.Unread"/>; which local of the composer is "has a mesh" (+0x2C88, the emitter's
@@ -42,8 +54,11 @@ public static class ParticleComposition
     /// <summary>The graph every render pass starts with.</summary>
     public const string Base = "Metadata/EngineGraphs/base.fxgraph";
 
-    /// <summary>The faces whose pass takes no render_transform.fxgraph: the composer's byte table at module+0x1360C88 holds one for them.</summary>
-    public static readonly IReadOnlySet<string> Untransformed = new HashSet<string>(StringComparer.Ordinal)
+    /// <summary>
+    /// The faces from 4 on whose pass takes render_transform.fxgraph: the composer's byte table at module+0x1360C88 holds one for them (faces
+    /// below 4 take it as the switch's default - <see cref="TakesTransform"/>).
+    /// </summary>
+    public static readonly IReadOnlySet<string> Transformed = new HashSet<string>(StringComparer.Ordinal)
     {
         "Velocity", "Velocity_Fixed", "Emitter", "Emitter_Fixed", "EmitterShape", "EmitterShape_Fixed", "Along", "Along_Fixed",
         "X", "X_Fixed", "Y", "Y_Fixed", "Z", "Z_Fixed", "Z_Camera", "Z_Velocity", "Z_Emitter", "Z_Along", "Old_X", "Old_Y",
@@ -58,6 +73,25 @@ public static class ParticleComposition
         "Z_Along", "Old_X", "Old_Y", "Old_Along_Camera", "Old_Camera_Along", "Old_Camera_Emitter", "Old_Camera_Velocity",
         "Old_Emitter_Camera", "Old_EmitterShape_Camera", "Old_Velocity_Camera",
     ];
+
+    /// <summary>
+    /// Whether a pass of this face takes render_transform.fxgraph: a face the composer's switch does not reach (below 4: None, Camera, Camera_Z,
+    /// Camera_Fixed - or a name the enum lacks, whose value would be past its end) by its default, one from 4 on where the byte table holds one.
+    /// </summary>
+    public static bool TakesTransform(string face)
+    {
+        int at = -1;
+        for (var one = 0; one < Faces.Count; one++)
+        {
+            if (string.Equals(Faces[one], face, StringComparison.Ordinal))
+            {
+                at = one;
+                break;
+            }
+        }
+
+        return at < 4 || Transformed.Contains(face);
+    }
 
     /// <summary>The graphs an emitter's shaders are built from, the materials last.</summary>
     /// <param name="emitter">The emitter as its .pet writes it.</param>
@@ -183,7 +217,7 @@ public static class ParticleComposition
                 render.Add(Folder + "face_" + face.ToLowerInvariant() + ".fxgraph");
             }
 
-            if (!Untransformed.Contains(face))
+            if (TakesTransform(face))
             {
                 render.Add(Folder + "render_transform.fxgraph");
             }

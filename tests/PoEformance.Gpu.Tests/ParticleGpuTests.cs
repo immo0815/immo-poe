@@ -120,6 +120,14 @@ public sealed class ParticleGpuTests
         Assert.Contains("pass 0 as its vertex shader left it: 16 triangles streamed of 16 made; 48 vertices: 0 at the cull value (0, 0, -1, 1), 0 behind the eye, 0 not finite, 48 with the whole of them in view, 0 out of it", state, StringComparison.Ordinal);
         Assert.Contains("pass 0 with a stand-in pixel shader writing one colour, over nothing: ", state, StringComparison.Ordinal);
         Assert.DoesNotContain("pass 0 with a stand-in pixel shader writing one colour, over nothing: nothing", state, StringComparison.Ordinal);
+
+        // AND WHAT ITS OWN PIXEL SHADER COMPUTED, unfinished: PixelMain's red, every written pixel exactly (1, 0, 0, 1); the surface readouts need
+        // the engine's static surface data, which this hand-written shader has none of - so they say why they were not drawn.
+        Assert.Contains("the tool's finishing (PoefParticleFinish): exposure ", state, StringComparison.Ordinal);
+        Assert.Contains("pass 0, its pixel shader returning the engine's colour as PixelMain hands it, unfinished, over nothing: ", state, StringComparison.Ordinal);
+        Assert.DoesNotContain("unfinished, over nothing: no pixel written", state, StringComparison.Ordinal);
+        Assert.Contains("with rgb nought; r 1..1 mean 1; g 0..0 mean 0; b 0..0 mean 0; a 1..1 mean 1", state, StringComparison.Ordinal);
+        Assert.Contains("pass 0, its pixel shader returning its surface's albedo (rgb, a), over nothing: not drawn - ", state, StringComparison.Ordinal);
     }
 
     private static SkinnedMesh Box()

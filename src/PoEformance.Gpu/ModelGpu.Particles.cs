@@ -846,8 +846,12 @@ public sealed partial class ModelGpu
         public ParticleCard(ParticleProgram program, string? cache)
         {
             _program = program;
+            _cache = cache;
             _compiling = Task.Run(() => Compile(program, cache));
         }
+
+        /// <summary>Where its compiled shaders are kept (shader-cache), or null.</summary>
+        private readonly string? _cache;
 
         public long Used { get; set; }
 
