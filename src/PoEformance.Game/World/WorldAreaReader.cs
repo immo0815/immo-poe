@@ -9,6 +9,19 @@ namespace PoEformance.Game.World;
 /// <param name="Environment">The .env file the area is lit by, from its row's Environments row - empty where it does not resolve.</param>
 public readonly record struct AreaInfo(string Id, string Name, int Act, bool IsTown, bool IsHideout, string Environment = "")
 {
+    private readonly string? _environment = Environment;
+
+    /// <summary>
+    /// The .env path, never null: a DEFAULT AreaInfo - the snapshot's area between two areas - skips the parameter's default and left it
+    /// null, and the light panel read its length (v0.1.452: the tool ended leaving Plantation for the hideout with the Monster Book open,
+    /// overlay.previous.log's NullReferenceException in SceneLightPanel.Load).
+    /// </summary>
+    public string Environment
+    {
+        get => _environment ?? string.Empty;
+        init => _environment = value;
+    }
+
     /// <summary>Nothing resolved - treated as hostile, so a failed read never blanks the overlay.</summary>
     public static AreaInfo Unknown { get; } = new(string.Empty, string.Empty, 0, false, false);
 
