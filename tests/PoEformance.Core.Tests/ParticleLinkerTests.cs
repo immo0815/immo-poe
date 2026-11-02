@@ -159,7 +159,7 @@ public class ParticleLinkerTests
         Assert.Equal([F + "sort.fxgraph"], ember.Sort);
         Assert.Equal(
             [ParticleComposition.Base, F + "render_default.fxgraph", F + "render_sort.fxgraph", F + "face_velocity_camera.fxgraph",
-             F + "render_transform.fxgraph", F + "render_flip_normal.fxgraph", "r0.mat"],
+             F + "render_flip_normal.fxgraph", "r0.mat"],
             ember.Passes[0]);
         Assert.Empty(ember.Unread);
 
@@ -172,9 +172,10 @@ public class ParticleLinkerTests
 
         Assert.Equal(F + "update_lock_mode2.fxgraph", ParticleComposition.Of(emitters[2]).Update[^2]);
         Assert.Contains(F + "face_camera_fixed.fxgraph", ParticleComposition.Of(emitters[2]).Passes[0]);
+        Assert.Contains(F + "render_transform.fxgraph", ParticleComposition.Of(emitters[2]).Passes[0]);
 
         // PER SECOND: lifetime_pps, no emit_once, the distribution's flag never set; persistent in update, sort and render; group 3 rounds to 4;
-        // Z takes no render_transform.
+        // Z takes render_transform (its graph writes only the particle's rotation).
         ParticleShaders pps = ParticleComposition.Of(emitters[3]);
         Assert.False(emitters[3].Distributed);
         Assert.Contains(F + "lifetime_pps.fxgraph", pps.Update);
@@ -183,7 +184,28 @@ public class ParticleLinkerTests
         Assert.Equal([F + "update_persistent.fxgraph", F + "sort.fxgraph"], pps.Sort);
         Assert.Equal(F + "update_group_4.fxgraph", pps.Update[^2]);
         Assert.Contains(F + "render_persistent.fxgraph", pps.Passes[0]);
-        Assert.DoesNotContain(F + "render_transform.fxgraph", pps.Passes[0]);
+        Assert.Contains(F + "render_transform.fxgraph", pps.Passes[0]);
+    }
+
+    [Fact]
+    public void ANYFACEButThoseWritingTheVertexsPlaceTakesRenderTransformAsTheComposersByteTableSays()
+    {
+        // THE BYTES AT module+0x1360C88 (the build of 2026-10-27), faces 4 to 37 in the enum's order: one takes render_transform, nought does
+        // not; the faces below 4 take it as the switch's default.
+        byte[] table = [0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
+        Assert.Equal(38, ParticleComposition.Faces.Count);
+        for (var face = 0; face < ParticleComposition.Faces.Count; face++)
+        {
+            bool takes = face < 4 || table[face - 4] == 1;
+            Assert.True(takes == ParticleComposition.TakesTransform(ParticleComposition.Faces[face]), ParticleComposition.Faces[face]);
+        }
+
+        // THE NOUGHTS ARE THE FACES WHOSE GRAPH WRITES VertexPosition ITSELF (every face graph of the capture of 2026-11-01 23:05).
+        Assert.False(ParticleComposition.TakesTransform("Velocity_Camera"));
+        Assert.False(ParticleComposition.TakesTransform("Old_EmitterShape_Camera"));
+        Assert.True(ParticleComposition.TakesTransform("Camera"));
+        Assert.True(ParticleComposition.TakesTransform("Z_Camera"));
+        Assert.True(ParticleComposition.TakesTransform("no face of the enum"));
     }
 
     [Fact]

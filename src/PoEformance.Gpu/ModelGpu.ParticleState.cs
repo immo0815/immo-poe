@@ -68,6 +68,11 @@ public sealed partial class ModelGpu
     /// card's own pipeline statistics over the draw (what reached the clipper, what passed it, how often the pixel shader ran); every vertex the
     /// engine's vertex shader made, streamed out as it left the shader (hidden at render_default's cull value, behind the eye, out of view or in
     /// it); and the pass drawn once more with a stand-in pixel shader writing one colour, which covers whatever the geometry covers.
+    /// v0.1.449'S CAPTURE told the two apart: the embers' geometry never landed, the flame's covered 2,890 pixels with the stand-in and
+    /// nothing with its own pixel shader - which "nothing" cannot split into a nought alpha, a nought colour or the tool's finishing. So the
+    /// pass's own pixel shader is drawn once more for each of <see cref="RawReadouts"/> (v0.1.450), returning what it computed in place of
+    /// the tool's finishing, into a target cleared to <see cref="Unwritten"/> so a nought it writes is told from a pixel it never reached; and
+    /// the finishing's own constants are written beside them.
     /// </remarks>
     private void Screened(ParticleCard card, List<string> lines)
     {
@@ -85,6 +90,12 @@ public sealed partial class ModelGpu
         using ID3D11Query statistics = _device.CreateQuery(QueryType.PipelineStatistics);
         ID3D11PixelShader? standIn = StandIn(out string standInWhy);
         var row = new float[size * 4];
+        ColourGrade? grade = light?.Grade;
+        lines.Add(Say($"  the tool's finishing (PoefParticleFinish): exposure {light?.Exposure ?? 1f:0.####}, ")
+            + (grade is null ? "no grade" : Say($"graded through {grade.Width} x {grade.Height} x {grade.Depth} texels")));
+
+        // THE RAW READOUTS COMPILED ON EVERY CORE AT ONCE: an engine pixel shader runs to 17,000 lines, and the shader cache keeps them.
+        (byte[]? Code, string Why)[,] raw = card.RawCodes(RawReadouts.Select(one => one.Body).ToArray());
         for (var p = 0; p < card.Passes.Count; p++)
         {
             foreach (bool tested in (ReadOnlySpan<bool>)[false, true])
@@ -120,7 +131,99 @@ public sealed partial class ModelGpu
             Neutrals();
             Drew(_context, target, card, emitter, frame, view, light, into, tested: false, p, standIn);
             lines.Add(Say($"  pass {p} with a stand-in pixel shader writing one colour, over nothing: ") + Covered(texture, staging, row, size));
+            for (var r = 0; r < RawReadouts.Length; r++)
+            {
+                string said = Say($"  pass {p}, its pixel shader returning {RawReadouts[r].Said}, over nothing: ");
+                (byte[]? code, string why) = p < raw.GetLength(0) ? raw[p, r] : (null, "the program holds no such pass");
+                if (code is null)
+                {
+                    lines.Add(said + "not drawn - " + why);
+                    continue;
+                }
+
+                using ID3D11PixelShader shader = _device.CreatePixelShader(code);
+                _context.ClearRenderTargetView(into, new Color4(Unwritten, Unwritten, Unwritten, Unwritten));
+                Neutrals();
+                Drew(_context, target, card, emitter, frame, view, light, into, tested: false, p, shader);
+                lines.Add(said + Channels(texture, staging, row, size));
+            }
         }
+    }
+
+    /// <summary>
+    /// What a pass's own pixel shader is made to return in place of the tool's finishing, each its entry's statements after the engine's
+    /// PixelMain ran (ParticleLinker.Wrapped: <c>colour</c> its colour output): the colour as it hands it, its surface's albedo, and its
+    /// surface's emissive beside the light's alpha - the engine's static surface and emission data as PixelMain left them.
+    /// </summary>
+    private static readonly (string Said, string Body)[] RawReadouts =
+    [
+        ("the engine's colour as PixelMain hands it, unfinished", "    return colour;"),
+        ("its surface's albedo (rgb, a)", "    return sem_surface_data.material.albedo_color;"),
+        ("its surface's emissive (rgb) and the light's alpha (a)", "    return float4(sem_surface_data.material.emissive_color, sem_emission_data.pixel_color.a);"),
+    ];
+
+    /// <summary>What a raw readout's target is cleared to: a value no shader writes, so a nought written is told from a pixel never reached.</summary>
+    private const float Unwritten = -1e30f;
+
+    /// <summary>
+    /// What a raw readout wrote: the pixels written (not <see cref="Unwritten"/>), how many with an alpha above nought and how many with a nought
+    /// colour, each channel's least, most and mean over them, and how many were not finite.
+    /// </summary>
+    private string Channels(ID3D11Texture2D texture, ID3D11Texture2D staging, float[] row, int size)
+    {
+        _context.CopyResource(staging, texture);
+        MappedSubresource mapped = _context.Map(staging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+        long written = 0, odd = 0, lit = 0, black = 0;
+        var low = new float[] { float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue };
+        var high = new float[] { float.MinValue, float.MinValue, float.MinValue, float.MinValue };
+        var sum = new double[4];
+        try
+        {
+            for (var y = 0; y < size; y++)
+            {
+                Marshal.Copy(mapped.DataPointer + (y * mapped.RowPitch), row, 0, row.Length);
+                for (var x = 0; x < size; x++)
+                {
+                    int at = x * 4;
+                    if (row[at] == Unwritten && row[at + 1] == Unwritten && row[at + 2] == Unwritten && row[at + 3] == Unwritten)
+                    {
+                        continue;
+                    }
+
+                    written++;
+                    if (!float.IsFinite(row[at]) || !float.IsFinite(row[at + 1]) || !float.IsFinite(row[at + 2]) || !float.IsFinite(row[at + 3]))
+                    {
+                        odd++;
+                        continue;
+                    }
+
+                    for (var c = 0; c < 4; c++)
+                    {
+                        low[c] = Math.Min(low[c], row[at + c]);
+                        high[c] = Math.Max(high[c], row[at + c]);
+                        sum[c] += row[at + c];
+                    }
+
+                    lit += row[at + 3] > 0f ? 1 : 0;
+                    black += row[at] == 0f && row[at + 1] == 0f && row[at + 2] == 0f ? 1 : 0;
+                }
+            }
+        }
+        finally
+        {
+            _context.Unmap(staging, 0);
+        }
+
+        if (written == 0)
+        {
+            return "no pixel written";
+        }
+
+        long finite = written - odd;
+        string channels = finite == 0
+            ? string.Empty
+            : string.Concat(Enumerable.Range(0, 4).Select(c => Say($"; {"rgba"[c]} {low[c]:0.####}..{high[c]:0.####} mean {sum[c] / finite:0.####}")));
+        return Say($"{written} pixels written, {lit} with alpha above nought, {black} with rgb nought") + channels + (odd > 0 ? Say($", {odd} not finite") : string.Empty);
     }
 
     /// <summary>What a target holds after a pass drew into it alone: the pixels not nought, their box, the largest colour and alpha, the mean alpha.</summary>
@@ -344,6 +447,33 @@ public sealed partial class ModelGpu
 
         /// <summary>The emitter as it was last drawn - what the capture draws its passes again with.</summary>
         public ParticleEmitterNow? LastDrawn { get; set; }
+
+        /// <summary>
+        /// Each drawn pass's pixel shader wrapped to return each body's value in place of the tool's finishing (ParticleLinker.Wrapped, entry
+        /// <see cref="RawEntry"/>), compiled on every core at once and kept in the shader cache: [pass, body] - its bytecode, or why none.
+        /// </summary>
+        public (byte[]? Code, string Why)[,] RawCodes(IReadOnlyList<string> bodies)
+        {
+            int passes = Math.Min(Passes.Count, _program.Passes.Count);
+            var codes = new (byte[]? Code, string Why)[passes, bodies.Count];
+            Parallel.For(0, passes * bodies.Count, at =>
+            {
+                int p = at / bodies.Count, b = at % bodies.Count;
+                string? source = ParticleLinker.Wrapped(_program.Passes[p].Pixel.Hlsl, RawEntry, string.Empty, bodies[b]);
+                if (source is null)
+                {
+                    codes[p, b] = (null, "it holds no PixelMain");
+                    return;
+                }
+
+                byte[]? code = ParticleBytes(source, RawEntry, "ps_5_0", _cache, out string why);
+                codes[p, b] = (code, why.Length > 0 ? why : "it would not compile");
+            });
+            return codes;
+        }
+
+        /// <summary>The raw readouts' entry point.</summary>
+        private const string RawEntry = "PixelRaw";
 
         /// <summary>Its account, read back: see <see cref="ParticleState"/>.</summary>
         public void State(ID3D11Device device, ID3D11DeviceContext context, List<string> lines)

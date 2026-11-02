@@ -1307,7 +1307,8 @@ not using its mesh's vertex groups), update_persistent, update_dynamic_culling, 
 Fixed, Random, PPS, Expression, EPS - PPS and EPS per second), seed, emit_once, integrate, the vertex group graphs, spawn, one lock graph,
 update_group_N, then the update material LAST; for each pass base.fxgraph, render_persistent, render_default / render_mesh /
 render_vertex_group (stateless variants without an update material), render_sort, face_<face_lock lower-cased> unless None, render_transform
-unless the face is in the composer's byte table, render_flip_normal without a mesh, render_group_N, the render material LAST. The .pet reader
+where the composer's byte table holds one for the face or the face is below 4 (read the other way round until v0.1.450, see below),
+render_flip_normal without a mesh, render_group_N, the render material LAST. The .pet reader
 stores every key 0x3B0 below the field the composer tests - checked on lock_to_screen, emit_once, mesh_set, group_size and count_type. The
 lamp's three: ember and shimmer render_default with face_velocity_camera / face_camera_fixed, the flame render_mesh with render_group_8; the
 shimmer takes update_lock_mode2 for its translation lock. NOT READ: what a mesh adds to a pass's list (module+0x13C0490 - the flame's).
@@ -1489,6 +1490,29 @@ statistics over the draw (triangles to the clipper and past it, pixel shader run
 the shader (a pass-through geometry shader made from the vertex shader itself, nothing rasterized - counted at render_default's cull value
 (0, 0, -1, 1), behind the eye, not finite, in view or out of it, with the ranges after the divide and the first six whole), and the pass drawn once
 more with a stand-in pixel shader writing one colour.
+ITS CAPTURE (v0.1.449, 2026-11-02 01:02, Canal Hideout, the player taken with the staff, game light on) TOLD THE TWO PASSES APART:
+- THE EMBERS NEVER LANDED: 36 triangles to the clipper, none past it; all 108 vertices streamed out of view, after the divide y 1.12 to 2.43 (above
+  the picture), their quads a few tenths of a unit. Each particle was PLACED TWICE: face_velocity_camera writes the vertex's world place itself
+  (VertexPosition at WorldTransform), and render_transform after it took that place for a mesh corner - its particle plus its scale times it
+  again (particle 0's z -184.55 x (1 + its scale 0.5827) = -292.09, streamed -292.10). THE COMPOSER'S BYTE TABLE WAS READ THE WRONG WAY ROUND
+  (read again from program-code.bin, schema `GpuParticleEmitterDef`): the composer switches on the face less 4 (module+0x135F1DA), the table at
+  module+0x1360C88 taking faces 4 to 37 to case 0 or 1 of a two-entry jump table at module+0x1360C80; case 1 and the default (faces 0 to 3:
+  None, Camera, Camera_Z, Camera_Fixed) push render_transform.fxgraph (module+0x135F1FB, the wide string at module+0x319B650) and fall into case
+  0, which pushes render_flip_normal where there is no mesh. So a one TAKES render_transform; the 14 faces holding nought are exactly those whose
+  graph writes VertexPosition itself (every face graph the capture of 23:05 holds: Camera_Velocity, Camera_Emitter, Camera_Along, Velocity_Camera,
+  Emitter_Camera, EmitterShape_Camera, Along_Camera and the seven Old_ ones naming Camera); every other face writes only the particle's rotation
+  for render_transform to turn the mesh by. MENDED in v0.1.450 (`ParticleComposition.TakesTransform`, `Transformed`); of the lamp only the embers
+  change - the flame (no face) and the shimmer (Camera_Fixed) take render_transform as before. Their quads stay the CHOSEN plus and minus one
+  times the particle's scale (no more than a unit or so across - the particle's size of 10 feeds only its inverse mass).
+- THE FLAME'S GEOMETRY LANDED AND ITS PIXEL SHADER WROTE NOUGHT: all 1,920 triangles past the clipper, 6,140 pixel shader runs, the stand-in
+  covering 2,890 pixels at the lantern - and nothing with its own pixel shader. Its material (lamp_flame_R.mat) makes its alpha the caustic
+  texture's green (noise_caustic_011_Uncompressed.dds, BC1 despite its name), its albedo nought (a ChannelToChannel whose curve is nought, its To
+  Channel the graph's default, Albedo), its emissive that alpha times Noise_075_BC7.dds's green looked up through a fire colour times 5, and
+  lights it (HAS_LIGHTING: the colour is the emissive plus light on a nought albedo). Which factor comes out nought is not read from the code.
+  So from v0.1.450 the capture draws each pass's own pixel shader three more times (`ModelGpu.RawReadouts`, compiled on every core and kept in
+  shader-cache), each returning in place of the tool's finishing the engine's colour as PixelMain hands it, its surface's albedo, and its
+  surface's emissive beside the light's alpha (the engine's static surface and emission data after PixelMain ran), into a target cleared to a
+  value no shader writes (`Unwritten`) - the pixels written, each channel's least, most and mean - and the finishing's constants beside them.
 
 ## Verify against the game, not against yourself
 
