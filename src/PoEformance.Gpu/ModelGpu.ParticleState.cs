@@ -94,8 +94,10 @@ public sealed partial class ModelGpu
         lines.Add(Say($"  the tool's finishing (PoefParticleFinish): exposure {light?.Exposure ?? 1f:0.####}, ")
             + (grade is null ? "no grade" : Say($"graded through {grade.Width} x {grade.Height} x {grade.Depth} texels")));
 
-        // THE RAW READOUTS COMPILED ON EVERY CORE AT ONCE: an engine pixel shader runs to 17,000 lines, and the shader cache keeps them.
+        // THE RAW READOUTS AND THE TRACE COMPILED ON EVERY CORE AT ONCE: an engine pixel shader runs to 17,000 lines, and the shader cache
+        // keeps them.
         (byte[]? Code, string Why)[,] raw = card.RawCodes(RawReadouts.Select(one => one.Body).ToArray());
+        (byte[]? Code, string Why, string[] Names)[][] traces = card.TraceCodes();
         for (var p = 0; p < card.Passes.Count; p++)
         {
             foreach (bool tested in (ReadOnlySpan<bool>)[false, true])
@@ -147,7 +149,90 @@ public sealed partial class ModelGpu
                 Drew(_context, target, card, emitter, frame, view, light, into, tested: false, p, shader);
                 lines.Add(said + Channels(texture, staging, row, size));
             }
+
+            // THE TRACE (v0.1.451): every write of the surface's albedo and emissive in the pass's pixel shader, four a draw, in the order
+            // the shader makes them (ParticleLinker.Traced) - each over the pixels written, -1 where the write was never reached.
+            foreach ((byte[]? code, string why, string[] names) in p < traces.Length ? traces[p] : [])
+            {
+                string said = Say($"  pass {p} traced, over nothing: ");
+                if (code is null)
+                {
+                    lines.Add(said + string.Join(", ", names) + " - not drawn: " + why);
+                    continue;
+                }
+
+                using ID3D11PixelShader shader = _device.CreatePixelShader(code);
+                _context.ClearRenderTargetView(into, new Color4(Unwritten, Unwritten, Unwritten, Unwritten));
+                Neutrals();
+                Drew(_context, target, card, emitter, frame, view, light, into, tested: false, p, shader);
+                lines.Add(said + Traces(texture, staging, row, size, names));
+            }
         }
+    }
+
+    /// <summary>
+    /// What a traced draw wrote: over the pixels written, each of its four channels' least, most and mean under the name of the write it holds
+    /// (<see cref="ParticleLinker.Traced"/>).
+    /// </summary>
+    private string Traces(ID3D11Texture2D texture, ID3D11Texture2D staging, float[] row, int size, string[] names)
+    {
+        _context.CopyResource(staging, texture);
+        MappedSubresource mapped = _context.Map(staging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+        long written = 0;
+        var low = new float[] { float.MaxValue, float.MaxValue, float.MaxValue, float.MaxValue };
+        var high = new float[] { float.MinValue, float.MinValue, float.MinValue, float.MinValue };
+        var sum = new double[4];
+        var odd = new long[4];
+        try
+        {
+            for (var y = 0; y < size; y++)
+            {
+                Marshal.Copy(mapped.DataPointer + (y * mapped.RowPitch), row, 0, row.Length);
+                for (var x = 0; x < size; x++)
+                {
+                    int at = x * 4;
+                    if (row[at] == Unwritten && row[at + 1] == Unwritten && row[at + 2] == Unwritten && row[at + 3] == Unwritten)
+                    {
+                        continue;
+                    }
+
+                    written++;
+                    for (var c = 0; c < 4; c++)
+                    {
+                        float value = row[at + c];
+                        if (!float.IsFinite(value))
+                        {
+                            odd[c]++;
+                            continue;
+                        }
+
+                        low[c] = Math.Min(low[c], value);
+                        high[c] = Math.Max(high[c], value);
+                        sum[c] += value;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _context.Unmap(staging, 0);
+        }
+
+        if (written == 0)
+        {
+            return string.Join(", ", names) + " - no pixel written";
+        }
+
+        var said = new List<string>(4);
+        for (var c = 0; c < names.Length && c < 4; c++)
+        {
+            long finite = written - odd[c];
+            said.Add(finite == 0
+                ? Say($"{names[c]} not finite")
+                : Say($"{names[c]} {low[c]:0.####}..{high[c]:0.####} mean {sum[c] / finite:0.####}") + (odd[c] > 0 ? Say($" ({odd[c]} not finite)") : string.Empty));
+        }
+
+        return Say($"{written} pixels: ") + string.Join("; ", said);
     }
 
     /// <summary>
@@ -474,6 +559,45 @@ public sealed partial class ModelGpu
 
         /// <summary>The raw readouts' entry point.</summary>
         private const string RawEntry = "PixelRaw";
+
+        /// <summary>
+        /// Each drawn pass's pixel shader traced (ParticleLinker.Traced) and wrapped to return four of its traced writes a draw, compiled on
+        /// every core at once and kept in the shader cache: per pass, per group of four - its bytecode or why none, and the writes' names.
+        /// </summary>
+        public (byte[]? Code, string Why, string[] Names)[][] TraceCodes()
+        {
+            int passes = Math.Min(Passes.Count, _program.Passes.Count);
+            var all = new (byte[]? Code, string Why, string[] Names)[passes][];
+            var jobs = new List<(int Pass, int Group, string Source, string[] Names)>();
+            for (var p = 0; p < passes; p++)
+            {
+                (string traced, IReadOnlyList<string> points) = ParticleLinker.Traced(_program.Passes[p].Pixel.Hlsl);
+                int groups = (points.Count + 3) / 4;
+                all[p] = new (byte[]? Code, string Why, string[] Names)[groups];
+                for (var g = 0; g < groups; g++)
+                {
+                    string[] names = points.Skip(g * 4).Take(4).ToArray();
+                    string channels = string.Join(", ", Enumerable.Range(0, 4).Select(c => g * 4 + c < points.Count
+                        ? "PoefTrace[" + (g * 4 + c).ToString(CultureInfo.InvariantCulture) + "]"
+                        : "-2.0f"));
+                    string? source = ParticleLinker.Wrapped(traced, RawEntry, string.Empty, "    return float4(" + channels + ");");
+                    if (source is null)
+                    {
+                        all[p][g] = (null, "it holds no PixelMain", names);
+                        continue;
+                    }
+
+                    jobs.Add((p, g, source, names));
+                }
+            }
+
+            Parallel.ForEach(jobs, job =>
+            {
+                byte[]? code = ParticleBytes(job.Source, RawEntry, "ps_5_0", _cache, out string why);
+                all[job.Pass][job.Group] = (code, why.Length > 0 ? why : "it would not compile", job.Names);
+            });
+            return all;
+        }
 
         /// <summary>Its account, read back: see <see cref="ParticleState"/>.</summary>
         public void State(ID3D11Device device, ID3D11DeviceContext context, List<string> lines)

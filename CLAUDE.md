@@ -1513,6 +1513,10 @@ ITS CAPTURE (v0.1.449, 2026-11-02 01:02, Canal Hideout, the player taken with th
   shader-cache), each returning in place of the tool's finishing the engine's colour as PixelMain hands it, its surface's albedo, and its
   surface's emissive beside the light's alpha (the engine's static surface and emission data after PixelMain ran), into a target cleared to a
   value no shader writes (`Unwritten`) - the pixels written, each channel's least, most and mean - and the finishing's constants beside them.
+  And from v0.1.451 it TRACES them (`ParticleLinker.Traced`, `ModelGpu.TraceCodes`): every albedo and emissive write block the linker emits
+  (its "its write code" comments) keeps its value in a static array - the albedo's alpha, the emissive's largest channel, -1 where never
+  reached - and the pass is drawn returning four of them a draw, each line naming the graph and stage of each write: which graph makes a
+  channel nought is read off one capture.
 
 ## Verify against the game, not against yourself
 

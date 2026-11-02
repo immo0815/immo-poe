@@ -257,6 +257,63 @@ public static class ParticleLinker
         return wrapped.ToString();
     }
 
+    /// <summary>
+    /// A linked pixel shader with every write of the surface's albedo and emissive TRACED, for the capture (v0.1.451): after each write block
+    /// this linker emits (<c>{ // AlbedoColor @stage, graph, its write code</c>) the written value is kept in a static array - the albedo's
+    /// alpha, the emissive's largest channel - which starts at -1, so an entry point returning four of them at once says which graph made a
+    /// channel nought and which write was never reached. The points are named in order: "albedo's alpha after graph @stage", "emissive's
+    /// largest after graph @stage".
+    /// </summary>
+    public static (string Source, IReadOnlyList<string> Points) Traced(string pixel)
+    {
+        ArgumentNullException.ThrowIfNull(pixel);
+        var points = new List<string>();
+        var traced = new StringBuilder(pixel.Length + 8192);
+        string? pending = null;
+        string label = string.Empty;
+        foreach (string line in pixel.Split('\n'))
+        {
+            traced.Append(line).Append('\n');
+            string trimmed = line.TrimStart();
+            foreach ((string Mark, string Kind) write in (ReadOnlySpan<(string, string)>)[("{ // AlbedoColor @", "albedo"), ("{ // EmissiveColor @", "emissive")])
+            {
+                if (trimmed.StartsWith(write.Mark, StringComparison.Ordinal) && trimmed.Contains("its write code", StringComparison.Ordinal))
+                {
+                    // "{ // AlbedoColor @Texturing, MASK_TextureStatic.fxgraph, its write code" -> "MASK_TextureStatic @Texturing"
+                    string[] parts = trimmed[write.Mark.Length..].Split(", ");
+                    string stage = parts[0];
+                    string graph = parts.Length > 1 ? parts[1].Replace(".fxgraph", string.Empty, StringComparison.Ordinal) : "?";
+                    pending = write.Kind;
+                    label = write.Kind == "albedo" ? $"albedo's alpha after {graph} @{stage}" : $"emissive's largest after {graph} @{stage}";
+                }
+            }
+
+            if (pending == "albedo" && trimmed.StartsWith("float4 value = ", StringComparison.Ordinal))
+            {
+                traced.Append(CultureInfo.InvariantCulture, $"        PoefTrace[{points.Count}] = value.w;\n");
+                points.Add(label);
+                pending = null;
+            }
+            else if (pending == "emissive" && trimmed.StartsWith("float3 value = ", StringComparison.Ordinal))
+            {
+                traced.Append(CultureInfo.InvariantCulture, $"        PoefTrace[{points.Count}] = max(max(value.x, value.y), value.z);\n");
+                points.Add(label);
+                pending = null;
+            }
+        }
+
+        string source = traced.ToString();
+        string head = "PixelOut " + PixelEntry + "(";
+        int at = source.IndexOf(head, StringComparison.Ordinal);
+        if (points.Count == 0 || at < 0)
+        {
+            return (pixel, []);
+        }
+
+        string array = $"static float PoefTrace[{points.Count}] = {{ {string.Join(", ", Enumerable.Repeat("-1.0f", points.Count))} }};\n";
+        return (source.Insert(at, array), points);
+    }
+
     /// <summary>A value a pixel stage reads of a vertex stage: the node and output it comes from, its type, and the interpolant carrying it.</summary>
     public sealed record Crossing(int Graph, string Key, string Variable, string Type, string Name);
 

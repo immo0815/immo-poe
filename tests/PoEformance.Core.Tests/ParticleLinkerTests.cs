@@ -188,6 +188,40 @@ public class ParticleLinkerTests
     }
 
     [Fact]
+    public void ATRACEDPixelShaderKeepsEveryAlbedoAndEmissiveWriteInOrder()
+    {
+        // THE LINKER'S OWN WRITE BLOCKS (its "its write code" comments), as the lamp's pixel shaders hold them.
+        const string Pixel = """
+            struct PixelOut { float4 target_PIXEL_RETURN_SEMANTIC_COLOR : SV_Target0; };
+            PixelOut PixelMain(Interstage pin)
+            {
+                { // AlbedoColor @Texturing_Init, FXLit_Init.fxgraph, its write code
+                    SurfaceData surfaceData = sem_surface_data;
+                    float4 value = n8_561_input_in;
+            surfaceData.material.albedo_color = value;
+                    sem_surface_data = surfaceData;
+                }
+                { // EmissiveColor @Texturing, Channel_LookUpColor.fxgraph, its write code
+                    SurfaceData surfaceData = sem_surface_data;
+                    float3 value = n13_out;
+            surfaceData.material.emissive_color = value;
+                    sem_surface_data = surfaceData;
+                }
+            }
+            """;
+        (string traced, IReadOnlyList<string> points) = ParticleLinker.Traced(Pixel);
+        Assert.Equal(["albedo's alpha after FXLit_Init @Texturing_Init", "emissive's largest after Channel_LookUpColor @Texturing"], points);
+        Assert.Contains("static float PoefTrace[2] = { -1.0f, -1.0f };\nPixelOut PixelMain(", traced, StringComparison.Ordinal);
+        Assert.Contains("float4 value = n8_561_input_in;\n        PoefTrace[0] = value.w;", traced, StringComparison.Ordinal);
+        Assert.Contains("float3 value = n13_out;\n        PoefTrace[1] = max(max(value.x, value.y), value.z);", traced, StringComparison.Ordinal);
+
+        // A SHADER WITH NO SUCH WRITE comes back as it was, with nothing to trace.
+        (string plain, IReadOnlyList<string> none) = ParticleLinker.Traced("PixelOut PixelMain(Interstage pin) { }");
+        Assert.Equal("PixelOut PixelMain(Interstage pin) { }", plain);
+        Assert.Empty(none);
+    }
+
+    [Fact]
     public void ANYFACEButThoseWritingTheVertexsPlaceTakesRenderTransformAsTheComposersByteTableSays()
     {
         // THE BYTES AT module+0x1360C88 (the build of 2026-10-27), faces 4 to 37 in the enum's order: one takes render_transform, nought does
