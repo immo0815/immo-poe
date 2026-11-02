@@ -1540,6 +1540,20 @@ body reading this pass's values, each loop slot handed what the inside fed it af
 every pass has run; what the inside reads from outside but through a slot runs before the loop. A plain group's slot now takes the inside's feed
 for an outside reader and the outside's for an inside one. Relinked offline from the capture of 21:49: 145 of FlagConstraint's nodes, the three
 updates compiling under DXC.
+THE FLAME IS WHERE ITS FILES PUT IT; THE CORE IN THE GLASS IS SOMETHING ELSE (v0.1.453's look, said from the live client with the game's picture
+beside the Monster Book's: in the game a bright yellow-white core burns inside the lantern's glass, in the book the glass is black and orange
+streaks swirl round the lantern). A diagnosis over the capture of 2026-11-02 03:18 (model-panes.txt's particle state) and the linked update: the
+flame's 120 particles span 79 x 63 x 50 units round the lantern at up to 116 units a second, and a model of the linked graphs reproduces it from
+the material's own values - CustomWindTurbulence (lamp_flame_U.mat: Turbulence Velocity 300, Frequency 0..4, on each group's leader alone) thrown
+on a sphere of |phys_tri_lamp - lamp_01| round the lamp bone, Air making the leader follow its wind within 0.1 to 0.3 s, FlagConstraint dragging
+the seven others 15 to 45 units behind; no input is a stand-in but gravity's scene transform (0.33 units/s² in the engine, an air parcel). The
+game's pictures show such streaks outside the glass too. The lantern model is three shapes - dblShape (320 triangles, WandererStaff_normalc.mat:
+PBRMetallicOpacity over the staff's colour atlas, ForceAlphaBlendNoGI, TWEAK_Transparency's alpha times 4), opqShape (2,754) and the staff
+(2,085), the last two WandererStaffc.mat with the fire glow times 12 - and the probe inside the glass meets dblShape alone, drawn black. What
+the atlas paints there, and how opaque, is now written by the capture: model-panes' TEXTURES UNDER THE PROBE (v0.1.454, `CapturePanes.ProbeTextures`)
+- each texture the probed materials read as `probe-texture-N-name.png` (colour as stored, the probed shapes' triangles drawn over it in magenta)
+and `-alpha.png`, with the texels the shapes cover and their mean colour and alpha. And the agent link's `pane` takes `shows` (the light panel's
+shows row: Albedo, Lighting Only...; `SceneLightPanel.AgentShows`).
 
 ## Verify against the game, not against yourself
 

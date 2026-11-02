@@ -426,6 +426,209 @@ public static class CapturePanes
             .AppendLine();
     }
 
+    /// <summary>Most side of a probed texture's picture - CHOSEN: an atlas of 1024 x 2048 drawn at 512 x 1024 still shows a part's region.</summary>
+    private const int ProbeTextureSide = 1024;
+
+    /// <summary>
+    /// The textures the materials under each pane's last probe click read, each as two pictures beside the part - its colour as stored,
+    /// opaque, with the probed shapes' triangles drawn over it in magenta where their coordinates lie, and its alpha as grey - and a line
+    /// for each saying what it is. So what a surface's texture paints where the probe stood, and how opaque it makes it, is read off the
+    /// files rather than guessed from the picture.
+    /// </summary>
+    /// <remarks>
+    /// WRITTEN FOR THE EXILE'S STAFF'S LANTERN (v0.1.454): the game shows a bright yellow-white core through its glass where the Monster
+    /// Book draws the glass black, and its material (WandererStaff_normalc.mat: PBRMetallicOpacity over the staff's colour atlas, the
+    /// alpha times 4 by TWEAK_Transparency) says nothing of what the atlas holds there.
+    /// </remarks>
+    public static (IReadOnlyList<(string File, GamePicture Picture)> Pictures, IReadOnlyList<string> Lines) ProbeTextures(
+        Func<string, byte[]?>? read, IReadOnlyList<CapturePane> panes)
+    {
+        ArgumentNullException.ThrowIfNull(panes);
+        var pictures = new List<(string, GamePicture)>();
+        var lines = new List<string>();
+        if (read is null)
+        {
+            return (pictures, lines);
+        }
+
+        var paints = new MonsterModels.Paints();
+        var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (CapturePane pane in panes)
+        {
+            MonsterModel model = pane.Model;
+            foreach (IGrouping<string, int> material in pane.Probed
+                .Where(shape => MaterialOf(model, shape) is { Length: > 0 })
+                .GroupBy(shape => MaterialOf(model, shape)!, StringComparer.OrdinalIgnoreCase))
+            {
+                (ShadeCompile compiled, _) = paints.Compiled(read, material.Key.Replace('\\', '/').Trim());
+                if (compiled.Program is not { Plain: < 0 } program)
+                {
+                    lines.Add($"{material.Key}: no program to read textures of");
+                    continue;
+                }
+
+                int[] shapes = [.. material.Distinct()];
+                foreach (ShadeTexture texture in program.Textures.Concat(program.Glossy?.Textures ?? []).DistinctBy(one => one.Path, StringComparer.OrdinalIgnoreCase))
+                {
+                    if (!written.Add(material.Key + "|" + texture.Path))
+                    {
+                        continue;
+                    }
+
+                    if (GameArt.Decode(GameArt.ReadRaw(read, texture.Path)) is not { Ready: true } picture)
+                    {
+                        lines.Add($"{material.Key}: {texture.Path} did not decode");
+                        continue;
+                    }
+
+                    string stem = string.Create(CultureInfo.InvariantCulture, $"probe-texture-{(pictures.Count / 2) + 1}-{Path.GetFileNameWithoutExtension(texture.Path)}");
+                    (GamePicture colour, GamePicture alpha, string coverage) = Probed(picture, model, shapes);
+                    pictures.Add((stem + ".png", colour));
+                    pictures.Add((stem + "-alpha.png", alpha));
+                    lines.Add(string.Create(CultureInfo.InvariantCulture,
+                        $"{material.Key}: {texture.Path}{(texture.Srgb ? " (sRGB)" : string.Empty)}, {picture.Width} x {picture.Height} -> {stem}.png and {stem}-alpha.png at {colour.Width} x {colour.Height}; shapes {string.Join(", ", shapes)} {coverage}"));
+                }
+            }
+        }
+
+        return (pictures, lines);
+    }
+
+    /// <summary>
+    /// A texture shrunk to <see cref="ProbeTextureSide"/>, its colour opaque with the shapes' triangles drawn over it, its alpha as grey, and
+    /// what the shapes' coordinates cover of it - the box and the texels under them, the mean colour and alpha there.
+    /// </summary>
+    private static (GamePicture Colour, GamePicture Alpha, string Coverage) Probed(GamePicture picture, MonsterModel model, int[] shapes)
+    {
+        var step = 1;
+        while (picture.Width / step > ProbeTextureSide || picture.Height / step > ProbeTextureSide)
+        {
+            step *= 2;
+        }
+
+        int width = Math.Max(1, picture.Width / step), height = Math.Max(1, picture.Height / step);
+        var colour = new byte[width * height * 4];
+        var alpha = new byte[width * height * 4];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                int from = (((y * step) * picture.Width) + (x * step)) * 4;
+                int to = ((y * width) + x) * 4;
+                colour[to] = picture.Rgba[from];
+                colour[to + 1] = picture.Rgba[from + 1];
+                colour[to + 2] = picture.Rgba[from + 2];
+                colour[to + 3] = 255;
+                byte a = picture.Rgba[from + 3];
+                alpha[to] = a;
+                alpha[to + 1] = a;
+                alpha[to + 2] = a;
+                alpha[to + 3] = 255;
+            }
+        }
+
+        // THE SHAPES' TRIANGLES IN THE TEXTURE'S COORDINATES, wrapped into it as the sampler wraps them, and the texels they cover counted
+        // at the texture's own size.
+        Vector2[] uv = model.Mesh.Coordinates;
+        int[] indices = model.Mesh.Indices;
+        float leastU = float.MaxValue, leastV = float.MaxValue, mostU = float.MinValue, mostV = float.MinValue;
+        long covered = 0;
+        double red = 0, green = 0, blue = 0, opacity = 0;
+        var counted = new HashSet<int>();
+        foreach (int shape in shapes)
+        {
+            if (shape < 0 || shape >= model.Mesh.Shapes.Count || uv.Length == 0)
+            {
+                continue;
+            }
+
+            MeshShape part = model.Mesh.Shapes[shape];
+            for (int at = part.From; at + 2 < part.From + part.Count && at + 2 < indices.Length; at += 3)
+            {
+                Vector2 a = Wrapped(uv, indices[at]), b = Wrapped(uv, indices[at + 1]), c = Wrapped(uv, indices[at + 2]);
+                foreach (Vector2 one in (ReadOnlySpan<Vector2>)[a, b, c])
+                {
+                    leastU = MathF.Min(leastU, one.X);
+                    leastV = MathF.Min(leastV, one.Y);
+                    mostU = MathF.Max(mostU, one.X);
+                    mostV = MathF.Max(mostV, one.Y);
+                }
+
+                Line(colour, width, height, a, b);
+                Line(colour, width, height, b, c);
+                Line(colour, width, height, c, a);
+                Cover(picture, a, b, c, counted, ref covered, ref red, ref green, ref blue, ref opacity);
+            }
+        }
+
+        string coverage = covered == 0
+            ? "cover no texel of it"
+            : string.Create(CultureInfo.InvariantCulture,
+                $"cover u {leastU:F3}..{mostU:F3}, v {leastV:F3}..{mostV:F3} - {covered} texels, mean colour ({red / covered:F0}, {green / covered:F0}, {blue / covered:F0}) as stored and alpha {opacity / covered:F0} of 255 there");
+        return (new GamePicture(width, height, colour), new GamePicture(width, height, alpha), coverage);
+    }
+
+    /// <summary>A vertex's coordinates wrapped into nought to one, as the sampler wraps them.</summary>
+    private static Vector2 Wrapped(Vector2[] uv, int vertex)
+        => vertex >= 0 && vertex < uv.Length ? new Vector2(uv[vertex].X - MathF.Floor(uv[vertex].X), uv[vertex].Y - MathF.Floor(uv[vertex].Y)) : Vector2.Zero;
+
+    /// <summary>A magenta line between two places in a texture's coordinates.</summary>
+    private static void Line(byte[] rgba, int width, int height, Vector2 from, Vector2 to)
+    {
+        float x0 = from.X * (width - 1), y0 = from.Y * (height - 1), x1 = to.X * (width - 1), y1 = to.Y * (height - 1);
+        int steps = Math.Clamp((int)MathF.Ceiling(MathF.Max(MathF.Abs(x1 - x0), MathF.Abs(y1 - y0))), 1, 4096);
+        for (var s = 0; s <= steps; s++)
+        {
+            float t = s / (float)steps;
+            int x = (int)MathF.Round(x0 + ((x1 - x0) * t)), y = (int)MathF.Round(y0 + ((y1 - y0) * t));
+            if (x >= 0 && x < width && y >= 0 && y < height)
+            {
+                int at = ((y * width) + x) * 4;
+                rgba[at] = 255;
+                rgba[at + 1] = 0;
+                rgba[at + 2] = 255;
+            }
+        }
+    }
+
+    /// <summary>The texels inside a triangle in a texture's coordinates, each counted once, their colour and alpha summed.</summary>
+    private static void Cover(
+        GamePicture picture, Vector2 a, Vector2 b, Vector2 c, HashSet<int> counted, ref long covered, ref double red, ref double green, ref double blue, ref double opacity)
+    {
+        float ax = a.X * picture.Width, ay = a.Y * picture.Height, bx = b.X * picture.Width, by = b.Y * picture.Height, cx = c.X * picture.Width, cy = c.Y * picture.Height;
+        int left = Math.Max(0, (int)MathF.Floor(MathF.Min(ax, MathF.Min(bx, cx)))), right = Math.Min(picture.Width - 1, (int)MathF.Ceiling(MathF.Max(ax, MathF.Max(bx, cx))));
+        int top = Math.Max(0, (int)MathF.Floor(MathF.Min(ay, MathF.Min(by, cy)))), bottom = Math.Min(picture.Height - 1, (int)MathF.Ceiling(MathF.Max(ay, MathF.Max(by, cy))));
+        float area = ((bx - ax) * (cy - ay)) - ((cx - ax) * (by - ay));
+        if (MathF.Abs(area) < 1e-6f || (long)(right - left + 1) * (bottom - top + 1) > 4_000_000)
+        {
+            return;
+        }
+
+        for (int y = top; y <= bottom; y++)
+        {
+            for (int x = left; x <= right; x++)
+            {
+                float px = x + 0.5f, py = y + 0.5f;
+                float w0 = ((bx - px) * (cy - py)) - ((cx - px) * (by - py));
+                float w1 = ((cx - px) * (ay - py)) - ((ax - px) * (cy - py));
+                float w2 = ((ax - px) * (by - py)) - ((bx - px) * (ay - py));
+                bool inside = area > 0 ? w0 >= 0 && w1 >= 0 && w2 >= 0 : w0 <= 0 && w1 <= 0 && w2 <= 0;
+                int texel = (y * picture.Width) + x;
+                if (!inside || !counted.Add(texel))
+                {
+                    continue;
+                }
+
+                int at = texel * 4;
+                covered++;
+                red += picture.Rgba[at];
+                green += picture.Rgba[at + 1];
+                blue += picture.Rgba[at + 2];
+                opacity += picture.Rgba[at + 3];
+            }
+        }
+    }
+
     /// <summary>Each pane's shore as a picture, for the capture to write beside the part - named as its line names it.</summary>
     public static IReadOnlyList<(string File, GamePicture Picture)> ShorePictures(IReadOnlyList<CapturePane> panes)
     {

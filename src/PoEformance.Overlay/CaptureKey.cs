@@ -1335,6 +1335,19 @@ internal sealed class CaptureKey
                         File.WriteAllBytes(At(file), bytes);
                     }
 
+                    // THE TEXTURES UNDER THE PROBE, colour with the probed shapes' triangles over it and alpha apart (v0.1.454).
+                    (IReadOnlyList<(string File, GamePicture Picture)> probed, IReadOnlyList<string> said) = CapturePanes.ProbeTextures(read, panes);
+                    foreach ((string file, GamePicture picture) in probed)
+                    {
+                        using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(picture.Rgba, picture.Width, picture.Height);
+                        image.SaveAsPng(At(file));
+                    }
+
+                    if (said.Count > 0)
+                    {
+                        File.AppendAllText(At(CaptureReport.PanesFile), "\n=== the textures under the probe, as pictures beside this file\n" + string.Join("\n", said) + "\n");
+                    }
+
                     return text[..text.IndexOf('\n')];
                 });
             }
