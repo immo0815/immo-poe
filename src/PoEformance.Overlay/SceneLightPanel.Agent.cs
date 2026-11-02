@@ -101,6 +101,27 @@ public sealed partial class SceneLightPanel
         return said;
     }
 
+    /// <summary>
+    /// Sets what the picture shows by a view's name, as the light panel's "shows" row does - "Final Color", "Albedo", "Lighting Only" or its
+    /// PictureView's name without spaces; a line saying what it shows now, or the names where none matched.
+    /// </summary>
+    internal string AgentShows(string name)
+    {
+        string asked = name.Trim();
+        for (var one = 0; one < SceneLight.ViewNames.Count; one++)
+        {
+            if (string.Equals(SceneLight.ViewNames[one], asked, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(((PictureView)one).ToString(), asked.Replace(" ", string.Empty, StringComparison.Ordinal), StringComparison.OrdinalIgnoreCase))
+            {
+                _view = one;
+                _version++;
+                return $"shows: {SceneLight.ViewNames[one]}";
+            }
+        }
+
+        return $"no view '{asked}' - the views are {string.Join(", ", SceneLight.ViewNames)}";
+    }
+
     /// <summary>Every switch and value as it stands.</summary>
     internal string AgentState()
         => string.Join(", ", AgentSwitches().Select(one => $"{one.Label} {(one.Read() ? "on" : "off")}"))

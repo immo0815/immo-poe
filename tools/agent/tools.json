@@ -264,6 +264,10 @@
             "type": "number"
           }
         },
+        "shows": {
+          "type": "string",
+          "description": "What the picture shows, the light panel's shows row: Final Color, Albedo, Specular, Gloss, Roughness, World Normal (Fit), World Normal (True), Lighting Only."
+        },
         "probe": {
           "description": "A pixel to probe as shares of the picture across and down, for example {\"x\":0.5,\"y\":0.5}, or the word off.",
           "anyOf": [

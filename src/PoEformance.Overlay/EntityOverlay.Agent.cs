@@ -547,6 +547,7 @@ public sealed partial class EntityOverlay
         }
 
         string view = arguments.Text("view");
+        string shows = arguments.Text("shows");
         string animation = arguments.Text("animation");
         bool? playing = arguments.Has("playing") ? arguments.Flag("playing", true) : null;
         AskedPose? pose = PoseOf(arguments);
@@ -579,6 +580,11 @@ public sealed partial class EntityOverlay
                 {
                     done.Add("this book has no light panel");
                 }
+            }
+
+            if (shows.Length > 0)
+            {
+                done.Add(parts.Lighting is { } shown ? shown.AgentShows(shows) : "this book has no light panel");
             }
 
             if (view.Length > 0)
