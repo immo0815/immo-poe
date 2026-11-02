@@ -50,9 +50,9 @@ public sealed partial class ModelGpu
     /// <summary>The step the particles' drawing is at, named where the card refuses one - an HRESULT alone says nothing of which call it was.</summary>
     private string _particleStep = string.Empty;
     private ID3D11SamplerState?[]? _engineSamplers;
-    private ID3D11ShaderResourceView? _white, _blackCube, _zeroUints, _zeroTyped;
+    private ID3D11ShaderResourceView? _white, _blackCube, _zeroUints, _zeroTyped, _zeroFloats;
     private ID3D11Texture2D? _whiteTexture, _cubeTexture, _uintTexture;
-    private ID3D11Buffer? _typedBuffer;
+    private ID3D11Buffer? _typedBuffer, _floatBuffer;
     private ID3D11BlendState? _particleMixes, _particleAdds;
     private ID3D11RasterizerState? _particleRaster;
     private ID3D11DepthStencilState? _particleTests;
@@ -77,6 +77,49 @@ public sealed partial class ModelGpu
     /// update dispatched over its pool, then its passes drawn testing the depth and writing none.
     /// </summary>
     private void Particled(ID3D11DeviceContext context, ModelTarget target, ParticleFrame frame, in ParticleView view, SceneLight? light)
+    {
+        // THE PICTURE'S OWN BINDINGS HELD ACROSS THE PARTICLES AND PUT BACK (v0.1.451): their passes bind and then unbind every resource,
+        // sampler and constant buffer their shaders name - t0..t12 among them, where the light keeps its points, reach, cube, grade and
+        // shadow map (ModelGpu.Light) for the passes after, the screen-space fog's grading among them (a review of v0.1.450's capture).
+        var pixelViews = new ID3D11ShaderResourceView[HeldViews];
+        var vertexViews = new ID3D11ShaderResourceView[HeldViews];
+        var samplers = new ID3D11SamplerState[HeldSamplers];
+        var pixelBuffers = new ID3D11Buffer[HeldBuffers];
+        var vertexBuffers = new ID3D11Buffer[HeldBuffers];
+        context.PSGetShaderResources(0, HeldViews, pixelViews);
+        context.VSGetShaderResources(0, HeldViews, vertexViews);
+        context.PSGetSamplers(0, HeldSamplers, samplers);
+        context.PSGetConstantBuffers(0, HeldBuffers, pixelBuffers);
+        context.VSGetConstantBuffers(0, HeldBuffers, vertexBuffers);
+        try
+        {
+            Particles(context, target, frame, view, light);
+        }
+        finally
+        {
+            context.PSSetShaderResources(0, HeldViews, pixelViews);
+            context.VSSetShaderResources(0, HeldViews, vertexViews);
+            context.PSSetSamplers(0, HeldSamplers, samplers);
+            context.PSSetConstantBuffers(0, HeldBuffers, pixelBuffers);
+            context.VSSetConstantBuffers(0, HeldBuffers, vertexBuffers);
+            foreach (IDisposable? one in pixelViews.Concat<IDisposable?>(vertexViews).Concat(samplers).Concat(pixelBuffers).Concat(vertexBuffers))
+            {
+                one?.Dispose();
+            }
+        }
+    }
+
+    /// <summary>The resource slots of a stage held across the particles: all of them (D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT).</summary>
+    private const int HeldViews = 128;
+
+    /// <summary>The sampler slots held across the particles (D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT).</summary>
+    private const int HeldSamplers = 16;
+
+    /// <summary>The constant buffer slots held across the particles (D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT).</summary>
+    private const int HeldBuffers = 14;
+
+    /// <summary>The emitters stepped and drawn - <see cref="Particled"/>'s body, its bindings held around it.</summary>
+    private void Particles(ID3D11DeviceContext context, ModelTarget target, ParticleFrame frame, in ParticleView view, SceneLight? light)
     {
         var drawn = 0;
         var compiling = 0;
@@ -254,6 +297,13 @@ public sealed partial class ModelGpu
                 continue;
             }
 
+            // THE TOOL'S OWN FINISHING GRADE (PoefGrade at t127) IS FINISH'S: v0.1.450 bound a neutral of zeros over it here, which graded
+            // every colour of a lit picture to nought - the flame drew exactly nothing (v0.1.449's capture), the embers would have drawn black.
+            if (pixel && bind.Slot == FinishGrade)
+            {
+                continue;
+            }
+
             ID3D11ShaderResourceView view = card.Read(bind.Name, shader) ?? Texture(pass, bind.Name) ?? Neutral(bind);
             if (pixel)
             {
@@ -273,7 +323,8 @@ public sealed partial class ModelGpu
             context.VSSetShaderResource(bind.Slot, null!);
         }
 
-        foreach (Binding bind in pass.Pixel.Bindings.Where(one => one.Kind is not (ShaderInputType.Sampler or ShaderInputType.ConstantBuffer or ShaderInputType.TextureBuffer)))
+        // THE FINISHING GRADE STAYS for the emitter's next pass - Finish binds it once a Drew.
+        foreach (Binding bind in pass.Pixel.Bindings.Where(one => one.Kind is not (ShaderInputType.Sampler or ShaderInputType.ConstantBuffer or ShaderInputType.TextureBuffer) && one.Slot != FinishGrade))
         {
             context.PSSetShaderResource(bind.Slot, null!);
         }
@@ -463,7 +514,7 @@ public sealed partial class ModelGpu
         return bind.Dimension switch
         {
             ShaderResourceViewDimension.TextureCube => _blackCube!,
-            ShaderResourceViewDimension.Buffer => _zeroTyped!,
+            ShaderResourceViewDimension.Buffer => bind.Unsigned ? _zeroTyped! : _zeroFloats!,
             _ when bind.Unsigned => _zeroUints!,
             _ => _white!,
         };
@@ -492,6 +543,15 @@ public sealed partial class ModelGpu
         _zeroTyped = _device.CreateShaderResourceView(_typedBuffer, new ShaderResourceViewDescription
         {
             Format = Format.R32_UInt,
+            ViewDimension = ShaderResourceViewDimension.Buffer,
+            Buffer = new BufferShaderResourceView { FirstElement = 0, NumElements = 16 },
+        });
+
+        // A FLOAT BUFFER'S NEUTRAL IS A FLOAT VIEW - a uint view bound to a Buffer<float> is a return-type mismatch the debug layer reports.
+        _floatBuffer = _device.CreateBuffer(new float[16], BindFlags.ShaderResource, ResourceUsage.Immutable);
+        _zeroFloats = _device.CreateShaderResourceView(_floatBuffer, new ShaderResourceViewDescription
+        {
+            Format = Format.R32_Float,
             ViewDimension = ShaderResourceViewDimension.Buffer,
             Buffer = new BufferShaderResourceView { FirstElement = 0, NumElements = 16 },
         });
@@ -534,6 +594,8 @@ public sealed partial class ModelGpu
         _cubeTexture?.Dispose();
         _uintTexture?.Dispose();
         _typedBuffer?.Dispose();
+        _zeroFloats?.Dispose();
+        _floatBuffer?.Dispose();
         _particleMixes?.Dispose();
         _particleAdds?.Dispose();
         _particleRaster?.Dispose();
@@ -556,6 +618,12 @@ public sealed partial class ModelGpu
     /// (ModelShaders' Graded3 and Srgb, here over the light's grade at t127), then premultiplied - by its alpha for AlphaBlend, its light times its
     /// alpha added for Additive.
     /// </summary>
+    /// <remarks>
+    /// ADDITIVE LIGHT IS SCALED BY ITS ALPHA BEFORE IT IS FINISHED (v0.1.451): the engine adds a pass's light times its alpha to its linear
+    /// picture and tone-maps the sum, while v0.1.450 encoded the light first and scaled the code - at the flame's alphas of a quarter or so, an
+    /// HDR light of 2 came out 0.26 where the light it adds encodes to 0.75 (the capture of 2026-11-02 01:38, the grade off: the flame's pass at
+    /// most 0.148 over 8,158 pixels, too dim to see).
+    /// </remarks>
     internal static string FinishHlsl(ParticleBlend blend) =>
         "cbuffer PoefParticleFinish : register(b" + FinishBuffer.ToString(CultureInfo.InvariantCulture) + """
         )
@@ -627,7 +695,7 @@ public sealed partial class ModelGpu
     internal static string FinishBody(ParticleBlend blend) => blend == ParticleBlend.Additive
         ? """
               float alpha = saturate(colour.a);
-              float3 added = PoefFinished(colour.rgb) * alpha;
+              float3 added = PoefFinished(colour.rgb * alpha);
               return float4(added, 0.0f);
           """
         : """

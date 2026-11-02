@@ -644,7 +644,7 @@ public class ModelGpuTests
     }
 
     /// <summary>A DX10 DDS volume of R8G8B8A8, its texels from a function of their centres - LightHuntTests' table.</summary>
-    private static byte[] Volume(int side, Func<float, float, float, (float R, float G, float B)> texel)
+    internal static byte[] Volume(int side, Func<float, float, float, (float R, float G, float B)> texel)
     {
         var dds = new byte[148 + (side * side * side * 4)];
         "DDS "u8.CopyTo(dds);
