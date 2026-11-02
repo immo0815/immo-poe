@@ -58,7 +58,9 @@ public sealed record LinkedShader(
 /// - UNLESS IT IS A LOOP (v0.1.452): a group whose slots begin with <c>&lt;loop_count&gt;</c> and <c>&lt;loop_index&gt;</c> runs its nodes
 ///   that many times, a slot marked <c>"loop"</c> handed what the inside fed it into the next pass - FlagConstraint.fxgraph's chain constraint,
 ///   three passes pulling each member of the flame's ribbon towards the one before it. Taken for wiring, the passes never ran: the ribbon's
-///   members stayed stacked and the flame drew as straight streaks (said from the live client, 2026-11-02). See <c>EmitLoop</c>.
+///   members stayed stacked and the flame drew as straight streaks (said from the live client, 2026-11-02). See <c>EmitLoop</c>. From v0.1.454
+///   its output slots are its too (an output alone, a slot the inside feeds that carries nothing), the writers of the semantics its inside reads
+///   run before it, and a group sync in its body under a count that differs between threads is said - FXC refuses it (X3663), DXC does not.
 ///
 /// CHOSEN, said in <see cref="LinkedShader.Unresolved"/> where it stands in: UNIQUE_NODE_ID as a hash of the graph's path and the node's key
 /// (the engine's compiler hands it to each node function as `in uint UNIQUE_NODE_ID`, module+0x3193F18, its value not read); COMPUTE beside
@@ -524,6 +526,7 @@ public static class ParticleLinker
         private readonly HashSet<string> _fragmentNames = new(StringComparer.Ordinal);
         private readonly Dictionary<(int Graph, string Key), Node> _groups = [];
         private readonly HashSet<Node> _looping = [];
+        private readonly Dictionary<Node, IReadOnlyList<GroupSlot>> _groupSlots = [];
         private int _emitted;
 
         public LinkedShader Run()
@@ -899,9 +902,21 @@ public static class ParticleLinker
         /// <summary>The fragments writing a shared semantic run before a node reading it - those of this shader alone.</summary>
         private void PullWriters(string semantic, Node reader)
         {
+            foreach (Node writer in Writers(semantic, reader))
+            {
+                Emit(writer);
+            }
+        }
+
+        /// <summary>
+        /// The fragments of this shader writing a shared semantic a node reads, which run before it; none for a system value, nor in a render
+        /// pass for a machine semantic, which the shader's own inputs carry.
+        /// </summary>
+        private IEnumerable<Node> Writers(string semantic, Node reader)
+        {
             if (semantic.StartsWith("SV_", StringComparison.Ordinal) || (side != Side.Update && Machine(semantic)))
             {
-                return;
+                yield break;
             }
 
             foreach (Node writer in _semanticWriters.GetValueOrDefault(semantic) ?? [])
@@ -910,7 +925,30 @@ public static class ParticleLinker
                 // RANDOM_SEED from the particle the pixel side read (ReadParticleData #1 after SetParticlePixelId) - a vertex shader cannot run it.
                 if (writer != reader && Allowed(writer) && !(side == Side.Vertex && ReadsPixel(writer, [])))
                 {
-                    Emit(writer);
+                    yield return writer;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The shared semantics a node reads through ports no link feeds - a fragment's (BroadcastParticleGroup1Float4AtOffset's
+        /// PARTICLE_LOCAL_ID, which ReadParticleUpdateId writes) and every one an extension point's own read or write code binds.
+        /// </summary>
+        private IEnumerable<string> SemanticsRead(Node node)
+        {
+            if (node.Block is not { } block
+                || (node.Kind == NodeKind.Read && Coded(block, "read") is null)
+                || (node.Kind == NodeKind.Write && Coded(block, "write") is null))
+            {
+                yield break;
+            }
+
+            foreach (ShaderPort port in block.Ports)
+            {
+                if (port.Direction is "in" or "inout" && port.Semantic.Length > 0
+                    && !(node.Kind == NodeKind.Fragment && _into.TryGetValue((node.Graph, node.Key, port.Name), out List<ShaderLink>? links) && links.Count > 0))
+                {
+                    yield return port.Semantic;
                 }
             }
         }
@@ -1207,11 +1245,86 @@ public static class ParticleLinker
         }
 
         /// <summary>
+        /// One slot of a loop group as its loop runs it, its input and output entries joined by name: its type, whether the outside hands it a
+        /// value (an input slot), and whether it carries what the inside fed it into the next pass (a loop slot).
+        /// </summary>
+        private readonly record struct GroupSlot(string Name, string Type, bool Input, bool Carried)
+        {
+            /// <summary>Whether the slot's own variable takes what the inside fed it after each pass: a loop slot, or an output no input slot names.</summary>
+            public bool Takes => Carried || !Input;
+        }
+
+        /// <summary>
+        /// A loop group's slots, each once (v0.1.454): its input slots in their order, then the output slots no input slot names (an output
+        /// alone was read from outside as a variable never declared) - the input's type where both entries name one, carried where either says
+        /// "loop" (CHOSEN: FlagConstraint's three loop slots say it on both sides; no graph read so far says it on one alone).
+        /// </summary>
+        private IReadOnlyList<GroupSlot> SlotsOf(Node group)
+        {
+            if (_groupSlots.TryGetValue(group, out IReadOnlyList<GroupSlot>? known))
+            {
+                return known;
+            }
+
+            var slots = new List<GroupSlot>();
+            foreach (ShaderSlot slot in group.Source.Typed ?? [])
+            {
+                if (!slots.Exists(one => one.Name == slot.Name))
+                {
+                    slots.Add(new GroupSlot(slot.Name, SlotType(slot), Input: true, slot.Loop));
+                }
+            }
+
+            foreach (ShaderSlot slot in group.Source.Outputs ?? [])
+            {
+                int at = slots.FindIndex(one => one.Name == slot.Name);
+                if (at < 0)
+                {
+                    slots.Add(new GroupSlot(slot.Name, SlotType(slot), Input: false, slot.Loop));
+                }
+                else if (slot.Loop)
+                {
+                    slots[at] = slots[at] with { Carried = true };
+                }
+            }
+
+            _groupSlots[group] = slots;
+            return slots;
+        }
+
+        /// <summary>A loop group's slot of a name, or null where it names none.</summary>
+        private GroupSlot? SlotOf(Node group, string name)
+        {
+            foreach (GroupSlot slot in SlotsOf(group))
+            {
+                if (slot.Name == name)
+                {
+                    return slot;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Whether a slot's output stands apart from its input: an input slot carrying nothing, which the inside feeds all the same - every pass
+        /// reads what the outside handed it, a node outside what the inside fed it last (a plain group's slot reads the same way round).
+        /// </summary>
+        private bool Apart(Node group, GroupSlot slot) => slot.Input && !slot.Carried && Feed(group, slot.Name, inside: true) is not null;
+
+        /// <summary>
         /// A loop group's slot as a link reads it: inside, the loop's own variable, this pass's value; outside, the variable once every pass
-        /// has run - the loop emitted here first.
+        /// has run - the loop emitted here first - the count where it is the index (the for leaves it there), what the inside fed a slot that
+        /// stands apart (<see cref="Apart"/>).
         /// </summary>
         private string? Looped(Node group, ShaderEnd end)
         {
+            if (SlotOf(group, end.Variable) is not { } slot)
+            {
+                _unresolved.Add($"a link reads slot {end.Variable} of a loop group in {Path.GetFileName(graphs[group.Graph].Path)}, which names no such slot");
+                return null;
+            }
+
             if (!end.Internal)
             {
                 EmitLoop(group);
@@ -1219,8 +1332,13 @@ public static class ParticleLinker
                 {
                     return null;
                 }
+
+                return end.Variable == LoopIndex ? LoopSlot(group, LoopCount)
+                    : Apart(group, slot) ? LoopSlot(group, end.Variable) + "_out"
+                    : LoopSlot(group, end.Variable);
             }
-            else if (!_looping.Contains(group))
+
+            if (!_looping.Contains(group))
             {
                 _unresolved.Add($"slot {end.Variable} of a loop group in {Path.GetFileName(graphs[group.Graph].Path)} is read inside it while its loop does not run");
                 return null;
@@ -1231,9 +1349,20 @@ public static class ParticleLinker
 
         /// <summary>
         /// A LOOP GROUP AS THE GRAPH RUNS IT: its slots declared before the loop from what the outside hands them, its nodes run
-        /// <c>&lt;loop_count&gt;</c> times in the loop's body, each loop slot then handed what the inside fed it - all of them at once, after
-        /// the pass. What the inside reads from outside but through a slot runs before the loop, so its value stands outside the loop's scope.
+        /// <c>&lt;loop_count&gt;</c> times in the loop's body, each slot then handed what the inside fed it - all of them at once, after the pass.
+        /// What the inside reads from outside but through a slot runs before the loop, so its value stands outside the loop's scope; so do the
+        /// writers of the semantics the inside reads through ports no link feeds (v0.1.454: pulled from the body they ran inside the loop, every
+        /// pass, their outputs out of scope for a reader after it).
         /// </summary>
+        /// <remarks>
+        /// THE ENGINE'S LOOP IS A BARE FOR, and so is this one - READ from the program (the build of 2026-10-27): the generator writes a group's
+        /// passes at module+0x12DD810, and before its <c>for(; i &lt; n; i++)</c> it writes DX11_UNROLL, DX11_UNROLL_N and the definition's count,
+        /// or [loop] (module+0x12DE43B..0x12DE505) only where the group's definition says so - flags the sources' parser sets from a GROUP
+        /// block's own head words <c>unroll</c>, <c>unroll: count</c> and <c>loop</c> (module+0x28DB767..0x28DB86E, "unroll already declared for
+        /// fragment"). The program spells "unroll" nowhere else but in its preludes' macros and the generator's two lines, so no key of a graph
+        /// sets them, and a graph's editor <c>&lt;Group&gt;</c> has no block and no head words (FlagConstraint.fxgraph's: type, index, its slots
+        /// and the editor's place). So the count alone decides what FXC makes of a sync in the body (<see cref="SaySync"/>).
+        /// </remarks>
         private void EmitLoop(Node group)
         {
             if (group.Done)
@@ -1249,22 +1378,23 @@ public static class ParticleLinker
 
             group.Busy = true;
             string file = Path.GetFileName(graphs[group.Graph].Path);
-            ShaderSlot[] slots = group.Source.Typed ?? [];
-            var handed = new List<(ShaderSlot Slot, string Value)>();
-            foreach (ShaderSlot slot in slots)
+            IReadOnlyList<GroupSlot> slots = SlotsOf(group);
+            var handed = new List<(GroupSlot Slot, string Value)>();
+            foreach (GroupSlot slot in slots)
             {
                 if (slot.Name == LoopIndex)
                 {
                     continue;
                 }
 
+                // AN OUTPUT NO INPUT SLOT NAMES is handed nothing from outside, as the graph means it: nought before the first pass.
                 string? value = Feed(group, slot.Name, inside: false) is { } outside ? Source(group.Graph, outside.Source, 0) : null;
-                if (value is null)
+                if (value is null && slot.Input)
                 {
                     _unresolved.Add($"slot {slot.Name} of a loop group in {file} is handed nothing from outside: nought");
                 }
 
-                handed.Add((slot, value ?? $"({SlotType(slot)})0"));
+                handed.Add((slot, value ?? $"({slot.Type})0"));
             }
 
             var inner = _nodes.Where(node => node != group && LoopOf(node) == group).ToList();
@@ -1278,22 +1408,50 @@ public static class ParticleLinker
                         Source(one.Graph, link.Source, 0);
                     }
                 }
+
+                // THE WRITERS OF WHAT IT READS THROUGH A SEMANTIC, those outside the loop - a writer inside runs in the body where it is pulled.
+                foreach (string semantic in SemanticsRead(one))
+                {
+                    foreach (Node writer in Writers(semantic, one))
+                    {
+                        if (LoopOf(writer) != group)
+                        {
+                            Emit(writer);
+                        }
+                    }
+                }
+            }
+
+            if (side == Side.Update)
+            {
+                SaySync(group, inner, file);
             }
 
             _main.Append(CultureInfo.InvariantCulture, $"    // a loop group ({group.Source.Type} #{group.Source.Index}), {file}").Append('\n');
-            foreach ((ShaderSlot slot, string value) in handed)
+            foreach ((GroupSlot slot, string value) in handed)
             {
-                _main.Append(CultureInfo.InvariantCulture, $"    {SlotType(slot)} {LoopSlot(group, slot.Name)} = {value};").Append('\n');
+                _main.Append(CultureInfo.InvariantCulture, $"    {slot.Type} {LoopSlot(group, slot.Name)} = {value};").Append('\n');
+            }
+
+            foreach (GroupSlot slot in slots.Where(slot => Apart(group, slot)))
+            {
+                _main.Append(CultureInfo.InvariantCulture, $"    {slot.Type} {LoopSlot(group, slot.Name)}_out = {LoopSlot(group, slot.Name)};").Append('\n');
             }
 
             string index = LoopSlot(group, LoopIndex);
             _main.Append(CultureInfo.InvariantCulture, $"    for (uint {index} = 0u; {index} < {LoopSlot(group, LoopCount)}; {index}++)").Append('\n').Append("    {\n");
             _looping.Add(group);
-            var next = new List<(ShaderSlot Slot, string Value)>();
-            foreach (ShaderSlot slot in slots.Where(slot => slot.Loop))
+
+            // EVERY SLOT THE INSIDE FEEDS takes what it fed after the pass - a loop slot and an output alone into their own variable, the next
+            // pass reading it, a slot standing apart into its output (v0.1.454: the inside's feed of a slot that is no loop slot was left out).
+            var next = new List<(GroupSlot Slot, string Value)>();
+            foreach (GroupSlot slot in slots)
             {
-                string? value = Feed(group, slot.Name, inside: true) is { } inside ? Source(group.Graph, inside.Source, 0) : null;
-                next.Add((slot, value ?? LoopSlot(group, slot.Name)));
+                if (slot.Name is not (LoopCount or LoopIndex) && Feed(group, slot.Name, inside: true) is { } inside
+                    && Source(group.Graph, inside.Source, 0) is { } value)
+                {
+                    next.Add((slot, value));
+                }
             }
 
             // WHAT RUNS INSIDE AND FEEDS NO SLOT still runs every pass - a side effect.
@@ -1302,12 +1460,19 @@ public static class ParticleLinker
                 Emit(one);
             }
 
-            foreach ((ShaderSlot slot, string value) in next)
+            foreach ((GroupSlot slot, string value) in next)
             {
-                _main.Append(CultureInfo.InvariantCulture, $"    {SlotType(slot)} {LoopSlot(group, slot.Name)}_next = {value};").Append('\n');
+                if (slot.Takes)
+                {
+                    _main.Append(CultureInfo.InvariantCulture, $"    {slot.Type} {LoopSlot(group, slot.Name)}_next = {value};").Append('\n');
+                }
+                else
+                {
+                    _main.Append(CultureInfo.InvariantCulture, $"    {LoopSlot(group, slot.Name)}_out = {value};").Append('\n');
+                }
             }
 
-            foreach ((ShaderSlot slot, _) in next)
+            foreach ((GroupSlot slot, _) in next.Where(one => one.Slot.Takes))
             {
                 _main.Append(CultureInfo.InvariantCulture, $"    {LoopSlot(group, slot.Name)} = {LoopSlot(group, slot.Name)}_next;").Append('\n');
             }
@@ -1317,6 +1482,194 @@ public static class ParticleLinker
             _emitted++;
             group.Busy = false;
             group.Done = true;
+        }
+
+        /// <summary>
+        /// A SYNC IN THE BODY UNDER A COUNT THAT DIFFERS BETWEEN THREADS IS SAID (v0.1.454): FXC refuses a group sync in flow control that
+        /// varies by thread (X3663 at cs_5_0, the profile the Windows build compiles the update with), where DXC compiles it - so the link that
+        /// passes offline would fail on the card, said here instead. A body syncs where a node's code reaches a barrier
+        /// (<see cref="ShaderThreads.Syncs"/>: every BroadcastParticleGroup node through ParticleGroupBroadcast, FlagConstraint's among them); the
+        /// count differs where <see cref="Varies"/> finds what it is computed from does - FlagConstraint's, a ConstantUInt, does not.
+        /// </summary>
+        private void SaySync(Node group, IReadOnlyList<Node> inner, string file)
+        {
+            foreach (Node one in inner)
+            {
+                string? code = one.Kind switch
+                {
+                    NodeKind.Fragment => one.Block!.Body,
+                    NodeKind.Read => Coded(one.Block!, "read"),
+                    NodeKind.Write => Coded(one.Block!, "write"),
+                    _ => null,
+                };
+                if (code is null || source.Threads.SyncIn(code) is not { } sync)
+                {
+                    continue;
+                }
+
+                if (Feed(group, LoopCount, inside: false) is { } count && Varies(group.Graph, count.Source, []) is { } varies)
+                {
+                    string through = sync.Name == sync.Barrier ? string.Empty : $" through {sync.Name}";
+                    _unresolved.Add($"a loop group in {file} syncs its thread group in its body ({one.Source.Type} #{one.Source.Index} reaches {sync.Barrier}{through}) and its count can differ between the threads of a group ({varies}): FXC refuses that at cs_5_0 (X3663, a sync in flow control that varies by thread), DXC compiles it");
+                }
+
+                return;
+            }
+        }
+
+        /// <summary>The system values that differ between the threads of a group - SV_GroupID is one a group, the same for all of its threads.</summary>
+        private static readonly HashSet<string> ThreadValues = new(StringComparer.OrdinalIgnoreCase) { "SV_DispatchThreadID", "SV_GroupThreadID", "SV_GroupIndex" };
+
+        /// <summary>
+        /// What makes the value a link reads differ between the threads of a group, or null where nothing it is computed from does: a thread's own
+        /// system value (<see cref="ThreadValues"/>), a static or a group-shared array the threads write for themselves (ShaderThreads.Own), or
+        /// what an extension point is written - followed through groups' slots, links and the semantics' writers, and within a fragment through
+        /// the code computing that one output (ParticleGroupID's group_size reads the emitter's record alone, its id the particle's).
+        /// </summary>
+        private string? Varies(int graph, ShaderEnd end, HashSet<(int Graph, string Key, string Variable)> seen)
+        {
+            string key = ShaderGraph.Key(end.Type, end.Index, end.Stage);
+            if (!_byKey.TryGetValue((graph, key), out Node? from))
+            {
+                return null;
+            }
+
+            if (from.Kind == NodeKind.Fragment)
+            {
+                return VariesOut(from, end.Variable, seen);
+            }
+
+            if (!seen.Add((graph, key, end.Variable)))
+            {
+                return null;
+            }
+
+            switch (from.Kind)
+            {
+                case NodeKind.Group when Looping(from):
+                    // A LOOP'S INDEX RUNS ALIKE IN EVERY THREAD WHERE ITS COUNT DOES; any other slot holds what the outside handed it and the
+                    // inside fed it.
+                    if (end.Variable is LoopIndex or LoopCount)
+                    {
+                        return Feed(from, LoopCount, inside: false) is { } count ? Varies(graph, count.Source, seen) : null;
+                    }
+
+                    return (Feed(from, end.Variable, inside: false) is { } handed ? Varies(graph, handed.Source, seen) : null)
+                        ?? (Feed(from, end.Variable, inside: true) is { } fed ? Varies(graph, fed.Source, seen) : null);
+                case NodeKind.Group:
+                    // A PLAIN GROUP'S SLOT is the feed Source takes: the inside's for a reader outside, the outside's for one inside.
+                    return _into.TryGetValue((graph, key, end.Variable), out List<ShaderLink>? feeding) && feeding.Count > 0
+                        ? Varies(graph, feeding.FirstOrDefault(link => link.Target.Internal != end.Internal, feeding[0]).Source, seen)
+                        : null;
+                case NodeKind.Read:
+                    return VariesPoint(from.Block!, seen);
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>What makes one output of a fragment differ between threads: the ports, system values and storage its code computes it from.</summary>
+        private string? VariesOut(Node node, string output, HashSet<(int Graph, string Key, string Variable)> seen)
+        {
+            if (!seen.Add((node.Graph, node.Key, output)) || node.Block is not { } fragment)
+            {
+                return null;
+            }
+
+            HashSet<string> from = ShaderThreads.ComputedFrom(fragment.Body, output);
+            foreach (ShaderPort port in fragment.Ports)
+            {
+                if (port.Direction is not ("in" or "inout") || !from.Contains(port.Name))
+                {
+                    continue;
+                }
+
+                if (_into.TryGetValue((node.Graph, node.Key, port.Name), out List<ShaderLink>? links) && links.Count > 0)
+                {
+                    foreach (ShaderLink link in links)
+                    {
+                        if (Varies(node.Graph, link.Source, seen) is { } fed)
+                        {
+                            return fed;
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (ThreadValues.Contains(port.Semantic))
+                {
+                    return $"{port.Semantic}, read by {node.Source.Type} #{node.Source.Index}";
+                }
+
+                if (port.Semantic.Length == 0)
+                {
+                    continue;
+                }
+
+                foreach (Node writer in Writers(port.Semantic, node))
+                {
+                    foreach (ShaderPort written in writer.Block!.Ports)
+                    {
+                        if (written.Direction is "out" or "inout" && written.Semantic == port.Semantic && VariesOut(writer, written.Name, seen) is { } shared)
+                        {
+                            return shared;
+                        }
+                    }
+                }
+            }
+
+            ShaderThreads threads = source.Threads;
+            foreach (string name in from)
+            {
+                if (threads.Own.TryGetValue(name, out string? what))
+                {
+                    return $"{what}, read by {node.Source.Type} #{node.Source.Index}";
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// What makes an extension point's value differ between threads: its own generate code, or a value any node of these graphs writes into
+        /// it - the particle update's points are each particle's own, their generate code empty and their writes the particle's data
+        /// (update_base.fxgraph reads it by PARTICLE_ID).
+        /// </summary>
+        private string? VariesPoint(ShaderBlock point, HashSet<(int Graph, string Key, string Variable)> seen)
+        {
+            if (!seen.Add((-1, point.Name, string.Empty)))
+            {
+                return null;
+            }
+
+            ShaderThreads threads = source.Threads;
+            foreach (string name in ShaderThreads.ComputedFrom(point.Bodies.GetValueOrDefault("generate") ?? string.Empty, "value"))
+            {
+                if (threads.Own.TryGetValue(name, out string? what))
+                {
+                    return $"{what}, read by {point.Name}'s own code";
+                }
+            }
+
+            foreach (Node writer in _nodes)
+            {
+                if (writer.Kind != NodeKind.Write || writer.Block?.Name != point.Name
+                    || !_into.TryGetValue((writer.Graph, writer.Key, "input"), out List<ShaderLink>? links))
+                {
+                    continue;
+                }
+
+                foreach (ShaderLink link in links)
+                {
+                    if (Varies(writer.Graph, link.Source, seen) is { } written)
+                    {
+                        return $"{written}, written into {point.Name}";
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

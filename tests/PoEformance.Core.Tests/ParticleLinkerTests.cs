@@ -354,6 +354,241 @@ public class ParticleLinkerTests
         Assert.True(linked.Unresolved.Count == 0, string.Join("; ", linked.Unresolved));
     }
 
+    /// <summary>The loop tests' own fragments after <see cref="Source"/>: a count, sums, readers of the particle's id, and a node syncing its group.</summary>
+    private const string LoopSource = """
+
+        FRAGMENT Three
+        	cost: free
+        	out uint output
+        {{
+        	output = 3u;
+        }}
+
+        FRAGMENT ToFloat
+        	cost: free
+        	in uint a
+        	out float output
+        {{
+        	output = float(a);
+        }}
+
+        FRAGMENT Sum3
+        	cost: free
+        	in float a
+        	in float b
+        	in float c
+        	out float output
+        {{
+        	output = a + b + c;
+        }}
+
+        FRAGMENT IdCount
+        	cost: free
+        	in uint particle_id : PARTICLE_ID
+        	out uint output
+        {{
+        	output = particle_id % 4u;
+        }}
+
+        FRAGMENT GroupInfo
+        	cost: free
+        	in uint particle_id : PARTICLE_ID
+        	out uint index
+        	out uint size
+        {{
+        	index = particle_id % 8u;
+        	size = 8u; // one size for the whole group, whatever the particle
+        }}
+
+        DECLARATIONS group_sync
+        	include basics
+        {{
+        	GROUPSHARED uint4 group_data[64];
+
+        	uint4 Broadcast(uint lane, uint4 data)
+        	{
+        		MEMORY_BARRIER_GROUP();
+        		group_data[lane % 64u] = data;
+        		MEMORY_BARRIER_GROUP();
+        		return group_data[(lane % 64u) & ~7u];
+        	}
+        }}
+
+        FRAGMENT BroadcastLane
+        	cost: expensive
+        	compute
+        	include group_sync
+        	in uint lane : PARTICLE_ID
+        	in float data
+        	out float output
+        {{
+        	output = asfloat(Broadcast(lane, uint4(asuint(data), 0u, 0u, 0u)).x);
+        }}
+        """;
+
+    /// <summary>
+    /// A LOOP GROUP'S OUTPUT SLOTS ARE ITS TOO (v0.1.454): an output no input slot names was read from outside as a variable never declared,
+    /// and a slot the inside fed that carries nothing was read from outside as what the outside had handed it. Both are declared before the
+    /// loop and take what the inside fed them after each pass - the output alone into its own variable, the slot standing apart into an output
+    /// of its own, every pass still reading what the outside handed it; the index read after the loop is the count it ran to.
+    /// </summary>
+    [Fact]
+    public void ALOOPGroupsOutputSlotsAreDeclaredBeforeItsLoopAndTakeWhatTheInsideFedThem()
+    {
+        ShaderGraph graph = Graph("""
+            { "nodes": [
+                { "type": "Three", "index": 0 },
+                { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate" },
+                { "type": "<Group>", "index": 0,
+                  "input_slots": [ { "name": "<loop_count>", "type": "uint" }, { "name": "<loop_index>", "type": "uint" }, { "name": "start", "type": "float" } ],
+                  "output_slots": [ { "name": "total", "type": "float" }, { "name": "start", "type": "float" } ] },
+                { "type": "AddConst", "index": 0, "group_id": "<Group>_0" },
+                { "type": "AddConst", "index": 1, "group_id": "<Group>_0" },
+                { "type": "ToFloat", "index": 0 },
+                { "type": "Sum3", "index": 0 },
+                { "type": "ParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate" } ],
+              "links": [
+                { "src": { "type": "Three", "index": 0, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "<loop_count>" } },
+                { "src": { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "start" } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "start", "internal": true }, "dst": { "type": "AddConst", "index": 0, "variable": "a" } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "start", "internal": true }, "dst": { "type": "AddConst", "index": 1, "variable": "a" } },
+                { "src": { "type": "AddConst", "index": 0, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "total", "internal": true } },
+                { "src": { "type": "AddConst", "index": 1, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "start", "internal": true } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "total" }, "dst": { "type": "Sum3", "index": 0, "variable": "a" } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "start" }, "dst": { "type": "Sum3", "index": 0, "variable": "b" } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "<loop_index>" }, "dst": { "type": "ToFloat", "index": 0, "variable": "a" } },
+                { "src": { "type": "ToFloat", "index": 0, "variable": "output" }, "dst": { "type": "Sum3", "index": 0, "variable": "c" } },
+                { "src": { "type": "Sum3", "index": 0, "variable": "output" }, "dst": { "type": "ParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "input" } } ] }
+            """);
+        Assert.Equal([new ShaderSlot("total", "float", false), new ShaderSlot("start", "float", false)], graph.Nodes[2].Outputs ?? []);
+
+        LinkedShader linked = ParticleLinker.Update(ShaderSource.Of([("shaders/loop.ffx", Source + LoopSource)]),
+            [new LinkedGraph("out.fxgraph", graph, new Dictionary<string, ShaderValue[]>())], "#define DX11");
+        string hlsl = linked.Hlsl;
+
+        // BEFORE THE LOOP: the output alone at nought, the slot standing apart as what the outside handed it.
+        int output = hlsl.IndexOf("float n0_2_total = (float)0;", StringComparison.Ordinal);
+        int apart = hlsl.IndexOf("float n0_2_start_out = n0_2_start;", StringComparison.Ordinal);
+        int loop = hlsl.IndexOf("for (uint n0_2_index = 0u; n0_2_index < n0_2_count; n0_2_index++)", StringComparison.Ordinal);
+        Assert.True(output >= 0 && hlsl.IndexOf("float n0_2_start = n0_1_output;", StringComparison.Ordinal) < apart && apart < loop && output < loop, hlsl);
+
+        // AFTER EACH PASS: what the inside fed them; the slot's input itself never - every pass reads what the outside handed it.
+        int next = hlsl.IndexOf("float n0_2_total_next = n0_3_output;", StringComparison.Ordinal);
+        int fed = hlsl.IndexOf("n0_2_start_out = n0_4_output;", StringComparison.Ordinal);
+        int carried = hlsl.IndexOf("n0_2_total = n0_2_total_next;", StringComparison.Ordinal);
+        Assert.True(loop < next && next < carried && loop < fed && fed < carried, hlsl);
+        Assert.Equal(2, CountOf(hlsl, "float a = n0_2_start;"));
+        Assert.DoesNotContain("n0_2_start_next", hlsl, StringComparison.Ordinal);
+
+        // A NODE OUTSIDE reads them once every pass has run, and the index as the count the loop ran to.
+        int after = hlsl.IndexOf("// Sum3 #0, out.fxgraph", StringComparison.Ordinal);
+        Assert.True(carried < after, hlsl);
+        Assert.True(hlsl.IndexOf("float a = n0_2_total;", StringComparison.Ordinal) > after, hlsl);
+        Assert.True(hlsl.IndexOf("float b = n0_2_start_out;", StringComparison.Ordinal) > after, hlsl);
+        Assert.True(hlsl.IndexOf("uint a = n0_2_count;", StringComparison.Ordinal) > carried, hlsl);
+        Assert.True(linked.Unresolved.Count == 0, string.Join("; ", linked.Unresolved));
+    }
+
+    /// <summary>
+    /// THE WRITERS OF WHAT A LOOP'S INSIDE READS THROUGH A SEMANTIC RUN BEFORE THE LOOP (v0.1.454): pulled from the body, ReadId ran inside the
+    /// loop every pass and its own outputs were declared inside the loop's braces, out of scope for a node after it reading them by a link.
+    /// </summary>
+    [Fact]
+    public void THEWRITERSOfWhatALoopsInsideReadsThroughASemanticRunBeforeTheLoop()
+    {
+        ShaderGraph graph = Graph("""
+            { "nodes": [
+                { "type": "Three", "index": 0 },
+                { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate" },
+                { "type": "<Group>", "index": 0,
+                  "input_slots": [ { "name": "<loop_count>", "type": "uint" }, { "name": "<loop_index>", "type": "uint" }, { "name": "size", "type": "float", "loop": true } ],
+                  "output_slots": [ { "name": "size", "type": "float", "loop": true } ] },
+                { "type": "UsesId", "index": 0, "group_id": "<Group>_0" },
+                { "type": "ReadId", "index": 0 },
+                { "type": "ToFloat", "index": 0 },
+                { "type": "ParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate" },
+                { "type": "ParticlesUpdate::Size", "index": 1, "stage": "ParticlesWrite" } ],
+              "links": [
+                { "src": { "type": "Three", "index": 0, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "<loop_count>" } },
+                { "src": { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "size" } },
+                { "src": { "type": "UsesId", "index": 0, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "size", "internal": true } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "size" }, "dst": { "type": "ParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "input" } },
+                { "src": { "type": "ReadId", "index": 0, "variable": "particle_id" }, "dst": { "type": "ToFloat", "index": 0, "variable": "a" } },
+                { "src": { "type": "ToFloat", "index": 0, "variable": "output" }, "dst": { "type": "ParticlesUpdate::Size", "index": 1, "stage": "ParticlesWrite", "variable": "input" } } ] }
+            """);
+        LinkedShader linked = ParticleLinker.Update(ShaderSource.Of([("shaders/loop.ffx", Source + LoopSource)]),
+            [new LinkedGraph("writers.fxgraph", graph, new Dictionary<string, ShaderValue[]>())], "#define DX11");
+        string hlsl = linked.Hlsl;
+
+        int writer = hlsl.IndexOf("// ReadId #0", StringComparison.Ordinal);
+        int loop = hlsl.IndexOf("for (uint n0_2_index = 0u; n0_2_index < n0_2_count; n0_2_index++)", StringComparison.Ordinal);
+        int reader = hlsl.IndexOf("// UsesId #0", StringComparison.Ordinal);
+        int carried = hlsl.IndexOf("n0_2_size = n0_2_size_next;", StringComparison.Ordinal);
+        Assert.True(writer >= 0 && writer < loop && loop < reader && reader < carried, hlsl);
+        Assert.Equal(writer, hlsl.LastIndexOf("// ReadId #0", StringComparison.Ordinal));
+        Assert.True(hlsl.IndexOf("uint a = n0_4_particle_id;", StringComparison.Ordinal) > carried, hlsl);
+        Assert.True(linked.Unresolved.Count == 0, string.Join("; ", linked.Unresolved));
+    }
+
+    /// <summary>
+    /// A GROUP SYNC IN A LOOP'S BODY UNDER A COUNT THAT DIFFERS BETWEEN THREADS IS SAID (v0.1.454): FXC refuses it at cs_5_0 (X3663), DXC
+    /// compiles it. The count differs where what it is computed from does - the particle's id, written from SV_DispatchThreadID - and not where
+    /// it is a constant (FlagConstraint's three passes) or an output computed from nothing of the particle's (GroupInfo's size beside its
+    /// index); nothing is said where the body syncs nothing. The loop stays a bare for, as the engine writes a graph's loop group.
+    /// </summary>
+    [Theory]
+    [InlineData("IdCount", "output", "BroadcastLane", "data", true)]
+    [InlineData("GroupInfo", "index", "BroadcastLane", "data", true)]
+    [InlineData("Three", "output", "BroadcastLane", "data", false)]
+    [InlineData("GroupInfo", "size", "BroadcastLane", "data", false)]
+    [InlineData("IdCount", "output", "AddConst", "a", false)]
+    public void AGROUPSyncInALoopIsSaidWhereItsCountDiffersBetweenThreads(string count, string variable, string body, string input, bool said)
+    {
+        ShaderGraph graph = Graph($$"""
+            { "nodes": [
+                { "type": "ReadId", "index": 0 },
+                { "type": "{{count}}", "index": 0 },
+                { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate" },
+                { "type": "<Group>", "index": 0,
+                  "input_slots": [ { "name": "<loop_count>", "type": "uint" }, { "name": "<loop_index>", "type": "uint" }, { "name": "size", "type": "float", "loop": true } ],
+                  "output_slots": [ { "name": "size", "type": "float", "loop": true } ] },
+                { "type": "{{body}}", "index": 0, "group_id": "<Group>_0" },
+                { "type": "ParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate" } ],
+              "links": [
+                { "src": { "type": "{{count}}", "index": 0, "variable": "{{variable}}" }, "dst": { "type": "<Group>", "index": 0, "variable": "<loop_count>" } },
+                { "src": { "type": "InputParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "size" } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "size", "internal": true }, "dst": { "type": "{{body}}", "index": 0, "variable": "{{input}}" } },
+                { "src": { "type": "{{body}}", "index": 0, "variable": "output" }, "dst": { "type": "<Group>", "index": 0, "variable": "size", "internal": true } },
+                { "src": { "type": "<Group>", "index": 0, "variable": "size" }, "dst": { "type": "ParticlesUpdate::Size", "index": 0, "stage": "ParticlesUpdate", "variable": "input" } } ] }
+            """);
+        LinkedShader linked = ParticleLinker.Update(ShaderSource.Of([("shaders/loop.ffx", Source + LoopSource)]),
+            [new LinkedGraph("sync.fxgraph", graph, new Dictionary<string, ShaderValue[]>())], "#define DX11");
+
+        Assert.Contains("for (uint n0_3_index = 0u; n0_3_index < n0_3_count; n0_3_index++)", linked.Hlsl, StringComparison.Ordinal);
+        Assert.DoesNotContain("DX11_UNROLL", linked.Hlsl, StringComparison.Ordinal);
+        if (!said)
+        {
+            Assert.True(linked.Unresolved.Count == 0, string.Join("; ", linked.Unresolved));
+            return;
+        }
+
+        string line = Assert.Single(linked.Unresolved);
+        Assert.StartsWith("a loop group in sync.fxgraph syncs its thread group in its body (BroadcastLane #0 reaches MEMORY_BARRIER_GROUP through Broadcast)", line, StringComparison.Ordinal);
+        Assert.Contains("(SV_DispatchThreadID, read by ReadId #0)", line, StringComparison.Ordinal);
+        Assert.Contains("X3663", line, StringComparison.Ordinal);
+    }
+
+    private static int CountOf(string text, string part)
+    {
+        var count = 0;
+        for (int at = text.IndexOf(part, StringComparison.Ordinal); at >= 0; at = text.IndexOf(part, at + part.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
     [Fact]
     public void ACURVEOfTheGraphEditorIsGivenARowOfTheSplineLut()
     {

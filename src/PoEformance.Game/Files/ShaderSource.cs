@@ -101,6 +101,7 @@ public sealed class ShaderSource
     private readonly Dictionary<string, ShaderBlock> _declarations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ShaderBlock> _extensions = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ShaderBlock> _groups = new(StringComparer.Ordinal);
+    private ShaderThreads? _threads;
 
     /// <summary>The fragments by node type.</summary>
     public IReadOnlyDictionary<string, ShaderBlock> Fragments => _fragments;
@@ -117,6 +118,13 @@ public sealed class ShaderSource
     /// <summary>The names defined twice, the first kept - the engine's sources define each once, so a second is worth saying.</summary>
     public IList<string> Twice { get; } = [];
 
+    /// <summary>
+    /// What the declarations say of a thread group's threads - which names sync them, which hold a thread's own value (ShaderThreads) - read
+    /// the first time a link asks and kept until a source is added. Asked from several threads at once it may be read twice, never torn: the
+    /// result is immutable and its reference written whole.
+    /// </summary>
+    internal ShaderThreads Threads => _threads ??= ShaderThreads.Of(this);
+
     /// <summary>Reads one source's text and adds its definitions.</summary>
     /// <param name="path">The source's path, kept with each definition.</param>
     /// <param name="text">The source's text.</param>
@@ -124,6 +132,7 @@ public sealed class ShaderSource
     public int Add(string path, string text)
     {
         ArgumentNullException.ThrowIfNull(text);
+        _threads = null;
         string[] lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
         var count = 0;
         var at = 0;
