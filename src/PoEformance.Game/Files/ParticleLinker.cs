@@ -53,7 +53,12 @@ public sealed record LinkedShader(
 /// - A NODE'S OWN UNIFORMS ARE ITS PARAMETERS BY POSITION, the material's list under the node's custom name laid over the node's own, an entry
 ///   neither fills the uniform's declared default (ShadeProgram's Parameter, the same rule).
 /// - <c>&lt;Group&gt;</c> IS THE GRAPH EDITOR'S FOLDING, wiring alone: a slot is what the link INTO it carries, read by every link out of it
-///   (Better Emitter Phase in BoneSphereEmitter.fxgraph: in_FrameFrac in, out_EmitterPhase out).
+///   (Better Emitter Phase in BoneSphereEmitter.fxgraph: in_FrameFrac in, out_EmitterPhase out) - a node inside reading what the outside
+///   handed it, a node outside what the inside handed it (the links' <c>"internal"</c> ends tell the two apart).
+/// - UNLESS IT IS A LOOP (v0.1.452): a group whose slots begin with <c>&lt;loop_count&gt;</c> and <c>&lt;loop_index&gt;</c> runs its nodes
+///   that many times, a slot marked <c>"loop"</c> handed what the inside fed it into the next pass - FlagConstraint.fxgraph's chain constraint,
+///   three passes pulling each member of the flame's ribbon towards the one before it. Taken for wiring, the passes never ran: the ribbon's
+///   members stayed stacked and the flame drew as straight streaks (said from the live client, 2026-11-02). See <c>EmitLoop</c>.
 ///
 /// CHOSEN, said in <see cref="LinkedShader.Unresolved"/> where it stands in: UNIQUE_NODE_ID as a hash of the graph's path and the node's key
 /// (the engine's compiler hands it to each node function as `in uint UNIQUE_NODE_ID`, module+0x3193F18, its value not read); COMPUTE beside
@@ -517,6 +522,8 @@ public static class ParticleLinker
         private readonly Dictionary<string, List<Node>> _semanticWriters = new(StringComparer.Ordinal);
         private readonly List<ShaderBlock> _fragments = [];
         private readonly HashSet<string> _fragmentNames = new(StringComparer.Ordinal);
+        private readonly Dictionary<(int Graph, string Key), Node> _groups = [];
+        private readonly HashSet<Node> _looping = [];
         private int _emitted;
 
         public LinkedShader Run()
@@ -545,6 +552,10 @@ public static class ParticleLinker
                     if (_byKey.TryAdd((g, key), built))
                     {
                         _nodes.Add(built);
+                        if (built.Kind == NodeKind.Group)
+                        {
+                            _groups.TryAdd((g, node.GroupKey), built);
+                        }
                     }
                 }
 
@@ -780,6 +791,13 @@ public static class ParticleLinker
             if (node.Busy)
             {
                 _unresolved.Add($"a cycle through {node.Source.Type} ({graphs[node.Graph].Path})");
+                return;
+            }
+
+            if (LoopOf(node) is { } loop && !_looping.Contains(loop))
+            {
+                // A NODE INSIDE A LOOP RUNS IN THE LOOP'S BODY ALONE: pulled from outside (a side effect, a semantic's writer), the loop runs whole.
+                EmitLoop(loop);
                 return;
             }
 
@@ -1109,13 +1127,21 @@ public static class ParticleLinker
             switch (from.Kind)
             {
                 case NodeKind.Group:
+                    if (Looping(from))
+                    {
+                        string? looped = Looped(from, end);
+                        return looped is null ? null : swizzle.Length > 0 ? $"({looped}){swizzle}" : looped;
+                    }
+
                     if (depth > 16 || !_into.TryGetValue((graph, key, end.Variable), out List<ShaderLink>? feeding) || feeding.Count == 0)
                     {
                         _unresolved.Add($"group slot {end.Variable} of {Path.GetFileName(graphs[graph].Path)} is fed by nothing");
                         return null;
                     }
 
-                    string? fed = Source(graph, feeding[0].Source, depth + 1);
+                    // A NODE INSIDE READS WHAT THE OUTSIDE HANDED THE SLOT, A NODE OUTSIDE WHAT THE INSIDE HANDED IT.
+                    ShaderLink feed = feeding.FirstOrDefault(link => link.Target.Internal != end.Internal, feeding[0]);
+                    string? fed = Source(graph, feed.Source, depth + 1);
                     return fed is null ? null : swizzle.Length > 0 ? $"({fed}){swizzle}" : fed;
                 case NodeKind.Unknown:
                     return null;
@@ -1143,6 +1169,154 @@ public static class ParticleLinker
 
                     return $"{from.Name}_{(from.Kind == NodeKind.Read ? "output" : end.Variable)}{swizzle}";
             }
+        }
+
+        /// <summary>Whether a group node is a loop - its slots name <c>&lt;loop_count&gt;</c>.</summary>
+        private static bool Looping(Node group) => group.Source.Typed?.Any(slot => slot.Name == LoopCount) == true;
+
+        /// <summary>The loop group a node runs inside, or null - a node of a plain group runs where it is pulled.</summary>
+        private Node? LoopOf(Node node)
+            => node.Source.Group.Length > 0 && _groups.TryGetValue((node.Graph, node.Source.Group), out Node? group) && Looping(group) ? group : null;
+
+        /// <summary>A loop slot's variable: the loop's count and index by their own names, every other slot by its name.</summary>
+        private static string LoopSlot(Node group, string slot) => slot switch
+        {
+            LoopCount => group.Name + "_count",
+            LoopIndex => group.Name + "_index",
+            _ => $"{group.Name}_{Safe(slot)}",
+        };
+
+        /// <summary>A slot's HLSL type as the graph writes it.</summary>
+        private static string SlotType(ShaderSlot slot) => slot.Type.Length > 0 ? slot.Type : "float";
+
+        /// <summary>The link handing a group's slot its value from inside or from outside, or null.</summary>
+        private ShaderLink? Feed(Node group, string slot, bool inside)
+        {
+            if (_into.TryGetValue((group.Graph, group.Key, slot), out List<ShaderLink>? links))
+            {
+                foreach (ShaderLink link in links)
+                {
+                    if (link.Target.Internal == inside)
+                    {
+                        return link;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// A loop group's slot as a link reads it: inside, the loop's own variable, this pass's value; outside, the variable once every pass
+        /// has run - the loop emitted here first.
+        /// </summary>
+        private string? Looped(Node group, ShaderEnd end)
+        {
+            if (!end.Internal)
+            {
+                EmitLoop(group);
+                if (!group.Done)
+                {
+                    return null;
+                }
+            }
+            else if (!_looping.Contains(group))
+            {
+                _unresolved.Add($"slot {end.Variable} of a loop group in {Path.GetFileName(graphs[group.Graph].Path)} is read inside it while its loop does not run");
+                return null;
+            }
+
+            return LoopSlot(group, end.Variable);
+        }
+
+        /// <summary>
+        /// A LOOP GROUP AS THE GRAPH RUNS IT: its slots declared before the loop from what the outside hands them, its nodes run
+        /// <c>&lt;loop_count&gt;</c> times in the loop's body, each loop slot then handed what the inside fed it - all of them at once, after
+        /// the pass. What the inside reads from outside but through a slot runs before the loop, so its value stands outside the loop's scope.
+        /// </summary>
+        private void EmitLoop(Node group)
+        {
+            if (group.Done)
+            {
+                return;
+            }
+
+            if (group.Busy)
+            {
+                _unresolved.Add($"a cycle through a loop group of {graphs[group.Graph].Path}");
+                return;
+            }
+
+            group.Busy = true;
+            string file = Path.GetFileName(graphs[group.Graph].Path);
+            ShaderSlot[] slots = group.Source.Typed ?? [];
+            var handed = new List<(ShaderSlot Slot, string Value)>();
+            foreach (ShaderSlot slot in slots)
+            {
+                if (slot.Name == LoopIndex)
+                {
+                    continue;
+                }
+
+                string? value = Feed(group, slot.Name, inside: false) is { } outside ? Source(group.Graph, outside.Source, 0) : null;
+                if (value is null)
+                {
+                    _unresolved.Add($"slot {slot.Name} of a loop group in {file} is handed nothing from outside: nought");
+                }
+
+                handed.Add((slot, value ?? $"({SlotType(slot)})0"));
+            }
+
+            var inner = _nodes.Where(node => node != group && LoopOf(node) == group).ToList();
+            foreach (Node one in inner)
+            {
+                foreach (ShaderLink link in _intoNode.GetValueOrDefault((one.Graph, one.Key)) ?? [])
+                {
+                    if (_byKey.TryGetValue((one.Graph, ShaderGraph.Key(link.Source.Type, link.Source.Index, link.Source.Stage)), out Node? from)
+                        && from != group && LoopOf(from) != group)
+                    {
+                        Source(one.Graph, link.Source, 0);
+                    }
+                }
+            }
+
+            _main.Append(CultureInfo.InvariantCulture, $"    // a loop group ({group.Source.Type} #{group.Source.Index}), {file}").Append('\n');
+            foreach ((ShaderSlot slot, string value) in handed)
+            {
+                _main.Append(CultureInfo.InvariantCulture, $"    {SlotType(slot)} {LoopSlot(group, slot.Name)} = {value};").Append('\n');
+            }
+
+            string index = LoopSlot(group, LoopIndex);
+            _main.Append(CultureInfo.InvariantCulture, $"    for (uint {index} = 0u; {index} < {LoopSlot(group, LoopCount)}; {index}++)").Append('\n').Append("    {\n");
+            _looping.Add(group);
+            var next = new List<(ShaderSlot Slot, string Value)>();
+            foreach (ShaderSlot slot in slots.Where(slot => slot.Loop))
+            {
+                string? value = Feed(group, slot.Name, inside: true) is { } inside ? Source(group.Graph, inside.Source, 0) : null;
+                next.Add((slot, value ?? LoopSlot(group, slot.Name)));
+            }
+
+            // WHAT RUNS INSIDE AND FEEDS NO SLOT still runs every pass - a side effect.
+            foreach (Node one in inner.Where(node => node.Kind == NodeKind.Fragment && !node.Done && node.Block!.Has("sideeffects")))
+            {
+                Emit(one);
+            }
+
+            foreach ((ShaderSlot slot, string value) in next)
+            {
+                _main.Append(CultureInfo.InvariantCulture, $"    {SlotType(slot)} {LoopSlot(group, slot.Name)}_next = {value};").Append('\n');
+            }
+
+            foreach ((ShaderSlot slot, _) in next)
+            {
+                _main.Append(CultureInfo.InvariantCulture, $"    {LoopSlot(group, slot.Name)} = {LoopSlot(group, slot.Name)}_next;").Append('\n');
+            }
+
+            _main.Append("    }\n");
+            _looping.Remove(group);
+            _emitted++;
+            group.Busy = false;
+            group.Done = true;
         }
 
         /// <summary>
@@ -1636,6 +1810,10 @@ public static class ParticleLinker
 
             return hash;
         }
+
+        private const string LoopCount = "<loop_count>";
+
+        private const string LoopIndex = "<loop_index>";
 
         internal static string Safe(string name)
         {
