@@ -4084,6 +4084,13 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
             {
                 Book = "monster",
 
+                // TRANSLUCENT AND MASKED, as the Tile Book and the Effect Book are (v0.1.455): drawn solid, the Exile's Staff's
+                // lantern glass (ForceAlphaBlendNoGI) was a black shell over the flame the game shows burning inside it - the
+                // probe found the flame's mesh between the two walls of glass, "hidden under the surface drawn before it". The
+                // boss icons this book exports stay solid - see MonsterPortrait.ExportBlends.
+                Translucent = true,
+                Masked = true,
+
                 // THE INSTALL'S SHADER SOURCES, which a carried particle effect is linked from (ParticlePrograms) - v0.1.442
                 // wired the particles' switch and not these, so no emitter of any monster was ever linked.
                 Shaders = () => ShaderFiles,
@@ -4165,6 +4172,10 @@ public sealed partial class EntityOverlay : ClickableTransparentOverlay.Overlay
             {
                 Book = "item",
                 Shaded = true,
+
+                // TRANSLUCENT AND MASKED, as the Monster Book is (v0.1.455): an item's glass, glow and cut-out edges as the game draws them.
+                Translucent = true,
+                Masked = true,
                 Shaders = () => ShaderFiles,
             }),
         };

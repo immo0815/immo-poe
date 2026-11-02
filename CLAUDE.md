@@ -1554,6 +1554,19 @@ the atlas paints there, and how opaque, is now written by the capture: model-pan
 - each texture the probed materials read as `probe-texture-N-name.png` (colour as stored, the probed shapes' triangles drawn over it in magenta)
 and `-alpha.png`, with the texels the shapes cover and their mean colour and alpha. And the agent link's `pane` takes `shows` (the light panel's
 shows row: Albedo, Lighting Only...; `SceneLightPanel.AgentShows`).
+THE CORE IS THE LANTERN'S OWN FLAME MESH, AND THE MONSTER BOOK DREW THE GLASS SOLID OVER IT (v0.1.455; read through the agent link, the captures
+of 2026-11-02 05:24 and 05:33). WandererStaff_glow.dds holds two flame-shaped islands, yellow-white as stored (255, 255, 206), and opqShape's
+triangles cover both (`probe-texture-4-WandererStaff_glow.png`): a candle flame inside the bulb, WandererStaffc.mat's emissive times 12. The probe
+through the bulb found it - glass at 52.9, opqShape at 55.6 and 58.5, glass again at 61.5 - every fragment behind the first "hidden under the
+surface drawn before it", and "nothing translucent reached the picture": the Monster Book and the Item Book were made with `Translucent` and
+`Masked` off (`MonsterPortrait.Unfaded`), so every mixed or added material of a monster was drawn solid - the glass a black shell - and every
+cut-out uncut; the "emissive" switch changed not one pixel of the lantern. Both books draw them as the Tile and Effect Books do now; the boss
+icons the Monster Book exports keep drawing solid (`MonsterPortrait.ExportBlends`), the reason the switch was off - a rule on words
+(MaterialBlends) turning part of a boss see-through in the map's art. The flame's second pass (lamp_flame_R2.mat, POSTFX_TrailPhase_Blur's
+`overriden_blend_mode` Shimmer) and the shimmer emitter are distortions of the picture, not light: neither is the core. ALSO SEEN, NOT MENDED:
+the engine's default render state culls back faces - render_default.fxgraph and ScreenspaceQuad.fxgraph write `"render_state_overwrite":
+{"cull_mode": "none"}`, and the glass is "dblShape", its faces duplicated to be seen from inside - while the tool culls nothing and blends one
+fragment a shape a pixel; and the player's hair and eyes (Hair.fxgraph, Eye.fxgraph) do not compile ("nothing to colour it with").
 
 ## Verify against the game, not against yourself
 
